@@ -21,8 +21,14 @@ class BimaruState {
 	}
 
 	async startNewGame(difficulty: Difficulty, rows?: number, cols?: number): Promise<void> {
+		if (this.isGenerating) return;
 		this.isGenerating = true;
 		this.error = null;
+		if (this.errorTimeout) {
+			clearTimeout(this.errorTimeout);
+			this.errorTimeout = null;
+		}
+		this.errorCells = new Set();
 
 		try {
 			const puzzle = await generatePuzzle(difficulty, rows, cols);
@@ -58,6 +64,7 @@ class BimaruState {
 
 	async requestHint(): Promise<boolean> {
 		if (!this.puzzle) return false;
+		const capturedGameId = this.gameId;
 
 		try {
 			const hint = await getHint(
@@ -68,13 +75,14 @@ class BimaruState {
 				this.puzzle.hints
 			);
 
-			if (!hint) return false;
+			if (!hint || this.gameId !== capturedGameId) return false;
 
 			this.grid[hint.row][hint.col] = hint.value;
 			this.hintsUsed++;
 			this.checkWin();
 			return true;
-		} catch {
+		} catch (e) {
+			console.error('requestHint failed', e);
 			return false;
 		}
 	}
@@ -101,6 +109,7 @@ class BimaruState {
 
 	async requestCheck(): Promise<void> {
 		if (!this.puzzle) return;
+		const capturedGameId = this.gameId;
 
 		try {
 			const errors = await checkErrors(
@@ -111,6 +120,7 @@ class BimaruState {
 				this.puzzle.hints
 			);
 
+			if (this.gameId !== capturedGameId) return;
 			if (this.errorTimeout) clearTimeout(this.errorTimeout);
 			this.errorCells = new Set(errors.map(([r, c]) => `${r},${c}`));
 			this.errorTimeout = setTimeout(() => {
@@ -161,9 +171,15 @@ class BimaruState {
 					puzzle.fleet
 				);
 				if (valid && this.gameId === currentGameId) {
-					this.isComplete = true;
+					const stillFilled = !this.grid.some((row: CellValue[]) =>
+						row.some((cell: CellValue) => cell === 'empty')
+					);
+					if (stillFilled) {
+						this.isComplete = true;
+					}
 				}
-			} catch { /* validation failed */
+			} catch (e) {
+				console.error('checkWin validation failed', e);
 			} finally {
 				this.isValidating = false;
 			}

@@ -2,7 +2,7 @@
 name = "zzlepuh"
 version = "0.1.0"
 description = "Zzlepuh — Desktop Puzzle Game Platform"
-authors = ["you"]
+authors = ["Srecko Skocilic"]
 license = ""
 repository = ""
 edition = "2021"

@@ -1,12 +1,12 @@
 import { load, Store } from '@tauri-apps/plugin-store';
 
-let store: Store | null = null;
+let storePromise: Promise<Store> | null = null;
 
-async function getStore(): Promise<Store> {
-	if (!store) {
-		store = await load('zzlepuh-data.json', { defaults: {}, autoSave: true });
+function getStore(): Promise<Store> {
+	if (!storePromise) {
+		storePromise = load('zzlepuh-data.json', { defaults: {}, autoSave: true });
 	}
-	return store;
+	return storePromise;
 }
 
 export async function getData<T>(key: string): Promise<T | null> {
@@ -24,7 +24,7 @@ export async function setData<T>(key: string, value: T): Promise<void> {
 		const s = await getStore();
 		await s.set(key, value);
 		await s.save();
-	} catch {
-		// silently fail
+	} catch (e) {
+		console.error('persistence: failed to save', key, e);
 	}
 }

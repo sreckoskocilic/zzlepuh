@@ -27,7 +27,7 @@ pub fn get_hint(
         // Find first cell where player hasn't placed correctly
         for r in 0..rows {
             for c in 0..cols {
-                if player_grid[r][c] == CellValue::Empty {
+                if player_grid[r][c] != solution[r][c] {
                     return Some(BimaruHint {
                         row: r,
                         col: c,

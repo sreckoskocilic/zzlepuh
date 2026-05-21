@@ -8,7 +8,6 @@ Built with Tauri v2 + SvelteKit + Svelte 5 + Rust.
 
 - Node.js 20+
 - Rust (stable)
-- Tauri v2 CLI: `cargo install tauri-cli`
 
 ## Setup
 

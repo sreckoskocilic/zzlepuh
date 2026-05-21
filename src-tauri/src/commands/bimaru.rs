@@ -6,8 +6,8 @@ pub async fn generate_bimaru_puzzle(
     rows: Option<usize>,
     cols: Option<usize>,
 ) -> Result<BimaruPuzzle, String> {
-    let rows = rows.unwrap_or(10);
-    let cols = cols.unwrap_or(10);
+    let rows = rows.unwrap_or(10).clamp(4, 20);
+    let cols = cols.unwrap_or(10).clamp(4, 20);
     let fleet = Fleet::for_size(rows, cols);
 
     tauri::async_runtime::spawn_blocking(move || {
@@ -31,7 +31,13 @@ pub fn validate_bimaru_solution(
         return false;
     }
     let cols = player_grid[0].len();
+    if player_grid.iter().any(|row| row.len() != cols) {
+        return false;
+    }
 
+    if player_grid.iter().any(|row| row.iter().any(|c| *c == CellValue::Empty)) {
+        return false;
+    }
     if row_clues.len() != rows || col_clues.len() != cols {
         return false;
     }
@@ -101,6 +107,16 @@ pub fn get_bimaru_hint(
         return None;
     }
     let cols = player_grid[0].len();
+    if player_grid.iter().any(|row| row.len() != cols) {
+        return None;
+    }
+    if hints.len() != rows || hints.iter().any(|r| r.len() != cols) {
+        return None;
+    }
+    let fleet_cells: usize = fleet.ships.iter().map(|s| s.length * s.count).sum();
+    if fleet_cells > rows * cols {
+        return None;
+    }
 
     hint::get_hint(
         &row_clues,
@@ -126,6 +142,16 @@ pub fn check_bimaru_errors(
         return vec![];
     }
     let cols = player_grid[0].len();
+    if player_grid.iter().any(|row| row.len() != cols) {
+        return vec![];
+    }
+    if hints.len() != rows || hints.iter().any(|r| r.len() != cols) {
+        return vec![];
+    }
+    let fleet_cells: usize = fleet.ships.iter().map(|s| s.length * s.count).sum();
+    if fleet_cells > rows * cols {
+        return vec![];
+    }
 
     let Some(solution) = solver::solve(&row_clues, &col_clues, &hints, &fleet, rows, cols) else {
         return vec![];

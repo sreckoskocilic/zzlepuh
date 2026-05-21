@@ -2,16 +2,21 @@ class TimerState {
 	elapsedMs = $state(0);
 	isRunning = $state(false);
 	private intervalId: ReturnType<typeof setInterval> | null = null;
+	private startTime = 0;
+	private pausedMs = 0;
 
 	start(): void {
 		if (this.isRunning) return;
 		this.isRunning = true;
+		this.startTime = Date.now();
 		this.intervalId = setInterval(() => {
-			this.elapsedMs += 100;
+			this.elapsedMs = Date.now() - this.startTime + this.pausedMs;
 		}, 100);
 	}
 
 	pause(): void {
+		if (!this.isRunning) return;
+		this.pausedMs = this.elapsedMs;
 		this.isRunning = false;
 		if (this.intervalId) {
 			clearInterval(this.intervalId);
@@ -22,6 +27,7 @@ class TimerState {
 	reset(): void {
 		this.pause();
 		this.elapsedMs = 0;
+		this.pausedMs = 0;
 	}
 
 	restart(): void {

@@ -36,7 +36,7 @@ class StatsStore {
 			d.bestTimeMs = timeMs;
 		}
 
-		this.stats[gameId] = { ...s };
+		this.stats[gameId] = structuredClone(s);
 		await setData(`stats:${gameId}`, s);
 	}
 
@@ -48,7 +48,7 @@ class StatsStore {
 
 		s.byDifficulty[difficulty].played++;
 
-		this.stats[gameId] = { ...s };
+		this.stats[gameId] = structuredClone(s);
 		await setData(`stats:${gameId}`, s);
 	}
 
