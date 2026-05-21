@@ -1,7 +1,17 @@
 import type { BimaruPuzzle, CellValue, HintCell } from '$lib/types/bimaru';
 import type { Difficulty } from '$lib/types/game';
 import { generatePuzzle, validateSolution, getHint, checkErrors } from '$lib/services/tauri';
-import { nextCellValue } from './logic';
+
+interface CellChange {
+	row: number;
+	col: number;
+	prev: CellValue;
+	next: CellValue;
+}
+
+interface Move {
+	changes: CellChange[];
+}
 
 class BimaruState {
 	puzzle = $state<BimaruPuzzle | null>(null);
@@ -15,9 +25,19 @@ class BimaruState {
 	private gameId = 0;
 	private isValidating = false;
 	private errorTimeout: ReturnType<typeof setTimeout> | null = null;
+	private history = $state<Move[]>([]);
+	private redoStack = $state<Move[]>([]);
 
 	get isActive(): boolean {
 		return this.puzzle !== null && !this.isComplete;
+	}
+
+	get canUndo(): boolean {
+		return this.history.length > 0 && !this.isComplete;
+	}
+
+	get canRedo(): boolean {
+		return this.redoStack.length > 0 && !this.isComplete;
 	}
 
 	async startNewGame(difficulty: Difficulty, rows?: number, cols?: number): Promise<void> {
@@ -39,6 +59,8 @@ class BimaruState {
 			this.startedAt = Date.now();
 			this.gameId++;
 			this.isValidating = false;
+			this.history = [];
+			this.redoStack = [];
 		} catch (e) {
 			this.error = String(e);
 		} finally {
@@ -46,12 +68,41 @@ class BimaruState {
 		}
 	}
 
-	cycleCell(row: number, col: number): void {
+	placeShip(row: number, col: number): void {
 		if (!this.puzzle || this.isComplete) return;
 		if (this.puzzle.hints[row][col] !== 'empty') return;
 
-		this.grid[row][col] = nextCellValue(this.grid[row][col]);
+		const changes: CellChange[] = [];
+		const current = this.grid[row][col];
+		const next: CellValue = current === 'ship' ? 'empty' : 'ship';
+
+		changes.push({ row, col, prev: current, next });
+		this.grid[row][col] = next;
+
+		if (next === 'ship') {
+			this.autoWaterDiagonals(row, col, changes);
+		}
+
+		this.history.push({ changes });
+		this.redoStack = [];
 		this.checkWin();
+	}
+
+	placeWater(row: number, col: number): void {
+		if (!this.puzzle || this.isComplete) return;
+		if (this.puzzle.hints[row][col] !== 'empty') return;
+
+		const current = this.grid[row][col];
+		const next: CellValue = current === 'water' ? 'empty' : 'water';
+
+		this.history.push({ changes: [{ row, col, prev: current, next }] });
+		this.grid[row][col] = next;
+		this.redoStack = [];
+		this.checkWin();
+	}
+
+	cycleCell(row: number, col: number): void {
+		this.placeShip(row, col);
 	}
 
 	setCell(row: number, col: number, value: CellValue): void {
@@ -78,6 +129,9 @@ class BimaruState {
 			if (!hint || this.gameId !== capturedGameId) return false;
 
 			this.grid[hint.row][hint.col] = hint.value;
+			if (hint.value === 'ship') {
+				this.autoWaterDiagonalsNoTrack(hint.row, hint.col);
+			}
 			this.hintsUsed++;
 			this.checkWin();
 			return true;
@@ -89,22 +143,53 @@ class BimaruState {
 
 	fillRowWater(row: number): void {
 		if (!this.puzzle || this.isComplete) return;
+		const changes: CellChange[] = [];
 		for (let c = 0; c < this.puzzle.cols; c++) {
 			if (this.grid[row][c] === 'empty' && this.puzzle.hints[row][c] === 'empty') {
+				changes.push({ row, col: c, prev: 'empty', next: 'water' });
 				this.grid[row][c] = 'water';
 			}
+		}
+		if (changes.length) {
+			this.history.push({ changes });
+			this.redoStack = [];
 		}
 		this.checkWin();
 	}
 
 	fillColWater(col: number): void {
 		if (!this.puzzle || this.isComplete) return;
+		const changes: CellChange[] = [];
 		for (let r = 0; r < this.puzzle.rows; r++) {
 			if (this.grid[r][col] === 'empty' && this.puzzle.hints[r][col] === 'empty') {
+				changes.push({ row: r, col, prev: 'empty', next: 'water' });
 				this.grid[r][col] = 'water';
 			}
 		}
+		if (changes.length) {
+			this.history.push({ changes });
+			this.redoStack = [];
+		}
 		this.checkWin();
+	}
+
+	undo(): void {
+		if (!this.history.length || !this.puzzle || this.isComplete) return;
+		const move = this.history.pop()!;
+		for (let i = move.changes.length - 1; i >= 0; i--) {
+			const { row, col, prev } = move.changes[i];
+			this.grid[row][col] = prev;
+		}
+		this.redoStack.push(move);
+	}
+
+	redo(): void {
+		if (!this.redoStack.length || !this.puzzle || this.isComplete) return;
+		const move = this.redoStack.pop()!;
+		for (const { row, col, next } of move.changes) {
+			this.grid[row][col] = next;
+		}
+		this.history.push(move);
 	}
 
 	async requestCheck(): Promise<void> {
@@ -138,6 +223,33 @@ class BimaruState {
 		this.grid = this.initGridFromHints(this.puzzle);
 		this.isComplete = false;
 		this.errorCells = new Set();
+		this.history = [];
+		this.redoStack = [];
+	}
+
+	private autoWaterDiagonals(row: number, col: number, changes: CellChange[]): void {
+		const diags = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+		for (const [dr, dc] of diags) {
+			const r = row + dr, c = col + dc;
+			if (r >= 0 && r < this.puzzle!.rows && c >= 0 && c < this.puzzle!.cols) {
+				if (this.grid[r][c] === 'empty' && this.puzzle!.hints[r][c] === 'empty') {
+					changes.push({ row: r, col: c, prev: 'empty', next: 'water' });
+					this.grid[r][c] = 'water';
+				}
+			}
+		}
+	}
+
+	private autoWaterDiagonalsNoTrack(row: number, col: number): void {
+		const diags = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+		for (const [dr, dc] of diags) {
+			const r = row + dr, c = col + dc;
+			if (r >= 0 && r < this.puzzle!.rows && c >= 0 && c < this.puzzle!.cols) {
+				if (this.grid[r][c] === 'empty' && this.puzzle!.hints[r][c] === 'empty') {
+					this.grid[r][c] = 'water';
+				}
+			}
+		}
 	}
 
 	private initGridFromHints(puzzle: BimaruPuzzle): CellValue[][] {

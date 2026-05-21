@@ -42,7 +42,7 @@
 	.overlay {
 		position: absolute;
 		inset: 0;
-		background: rgba(10, 15, 12, 0.85);
+		background: var(--color-overlay-bg);
 		display: flex;
 		align-items: center;
 		justify-content: center;

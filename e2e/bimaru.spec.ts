@@ -27,7 +27,7 @@ test.describe('Bimaru', () => {
 		await expect(bimaru.timer).not.toHaveText('00:00', { timeout: 3000 });
 	});
 
-	test('cell click cycles empty > water > ship > empty', async () => {
+	test('left-click places ship, right-click places water', async () => {
 		await bimaru.startNewGame();
 
 		const puzzle = makeMockPuzzle();
@@ -44,11 +44,21 @@ test.describe('Bimaru', () => {
 
 		const cell = bimaru.cell(targetRow, targetCol);
 		await expect(cell).toHaveClass(/empty/);
-		await cell.click();
-		await expect(cell).toHaveClass(/water/);
+
+		// Left-click: ship
 		await cell.click();
 		await expect(cell).toHaveClass(/ship/);
+
+		// Left-click again: back to empty
 		await cell.click();
+		await expect(cell).toHaveClass(/empty/);
+
+		// Right-click: water
+		await cell.click({ button: 'right' });
+		await expect(cell).toHaveClass(/water/);
+
+		// Right-click again: back to empty
+		await cell.click({ button: 'right' });
 		await expect(cell).toHaveClass(/empty/);
 	});
 
@@ -67,7 +77,6 @@ test.describe('Bimaru', () => {
 		await bimaru.startNewGame();
 
 		const cell = bimaru.editableCells.first();
-		await cell.click();
 		await cell.click();
 		expect(await bimaru.playerShipCells.count()).toBeGreaterThan(0);
 
@@ -137,6 +146,32 @@ test.describe('Bimaru', () => {
 		}
 	});
 
+	test('undo reverts last move', async () => {
+		await bimaru.startNewGame();
+
+		const cell = bimaru.editableCells.first();
+		await expect(cell).toHaveClass(/empty/);
+
+		await cell.click();
+		await expect(cell).toHaveClass(/ship/);
+
+		await bimaru.page.keyboard.press('Control+z');
+		await expect(cell).toHaveClass(/empty/);
+	});
+
+	test('redo restores undone move', async () => {
+		await bimaru.startNewGame();
+
+		const cell = bimaru.editableCells.first();
+		await cell.click();
+		await expect(cell).toHaveClass(/ship/);
+
+		await bimaru.page.keyboard.press('Control+z');
+		await expect(cell).toHaveClass(/empty/);
+
+		await bimaru.page.keyboard.press('Control+Shift+z');
+		await expect(cell).toHaveClass(/ship/);
+	});
 });
 
 test.describe('Bimaru Win Flow', () => {
@@ -146,10 +181,8 @@ test.describe('Bimaru Win Flow', () => {
 		await bimaru.goto();
 		await bimaru.startNewGame();
 
-		// Easy puzzle: 6x6, cells (4,1) and (5,4) need 'ship' (2 clicks each)
+		// Easy puzzle: 6x6, cells (4,1) and (5,4) need 'ship' (1 click each)
 		await bimaru.cell(4, 1).click();
-		await bimaru.cell(4, 1).click();
-		await bimaru.cell(5, 4).click();
 		await bimaru.cell(5, 4).click();
 
 		await expect(bimaru.winOverlay).toBeVisible({ timeout: 5000 });
@@ -163,8 +196,8 @@ test.describe('Bimaru Check', () => {
 		await bimaru.goto();
 		await bimaru.startNewGame();
 
-		// Place wrong value: cell (4,1) should be ship, click once = water (wrong)
-		await bimaru.cell(4, 1).click();
+		// Place wrong value: cell (4,1) should be ship, right-click = water (wrong)
+		await bimaru.cell(4, 1).click({ button: 'right' });
 		await expect(bimaru.cell(4, 1)).toHaveClass(/water/);
 
 		await bimaru.btnCheck.click();
@@ -180,8 +213,7 @@ test.describe('Bimaru Check', () => {
 		await bimaru.goto();
 		await bimaru.startNewGame();
 
-		// Place correct value: cell (4,1) = ship (2 clicks: empty→water→ship)
-		await bimaru.cell(4, 1).click();
+		// Place correct value: cell (4,1) = ship (1 click)
 		await bimaru.cell(4, 1).click();
 		await expect(bimaru.cell(4, 1)).toHaveClass(/ship/);
 
@@ -215,8 +247,8 @@ test.describe('Navigation', () => {
 		await expect(page).toHaveURL('/bimaru');
 	});
 
-	test('navbar shows app name', async ({ page }) => {
+	test('home page shows app name', async ({ page }) => {
 		await page.goto('/');
-		await expect(page.locator('nav a[href="/"]')).toContainText('Zzlepuh');
+		await expect(page.locator('h1')).toContainText('Zzlepuh');
 	});
 });

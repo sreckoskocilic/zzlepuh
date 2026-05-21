@@ -8,16 +8,20 @@
 		puzzle,
 		grid,
 		onCellClick,
+		onCellRightClick,
 		onRowFill,
 		onColFill,
-		hasError
+		hasError,
+		cellSize = puzzle.cols <= 6 ? 44 : puzzle.cols <= 8 ? 40 : puzzle.cols <= 10 ? 36 : 30
 	}: {
 		puzzle: BimaruPuzzle;
 		grid: CellValue[][];
 		onCellClick: (row: number, col: number) => void;
+		onCellRightClick?: (row: number, col: number) => void;
 		onRowFill: (row: number) => void;
 		onColFill: (col: number) => void;
 		hasError: (row: number, col: number) => boolean;
+		cellSize?: number;
 	} = $props();
 
 	let rowCounts = $derived(
@@ -28,7 +32,6 @@
 		Array.from({ length: puzzle.cols }, (_, c) => countShipsInCol(grid, c, puzzle.rows))
 	);
 
-	let cellSize = $derived(puzzle.cols <= 6 ? 44 : puzzle.cols <= 8 ? 40 : puzzle.cols <= 10 ? 36 : 30);
 	let clueSize = $derived(cellSize + 3);
 </script>
 
@@ -58,6 +61,7 @@
 					isHint={puzzle.hints[r][c] !== 'empty'}
 					isError={hasError(r, c)}
 					onclick={() => onCellClick(r, c)}
+					onrightclick={() => onCellRightClick?.(r, c)}
 				/>
 			{/each}
 		</div>

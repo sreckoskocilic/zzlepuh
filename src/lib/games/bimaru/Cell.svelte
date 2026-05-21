@@ -11,7 +11,8 @@
 		cols,
 		isHint = false,
 		isError = false,
-		onclick
+		onclick,
+		onrightclick
 	}: {
 		value: CellValue;
 		grid: CellValue[][];
@@ -22,6 +23,7 @@
 		isHint?: boolean;
 		isError?: boolean;
 		onclick: () => void;
+		onrightclick?: () => void;
 	} = $props();
 
 	let visual = $derived(inferShipVisual(grid, row, col, rows, cols));
@@ -49,6 +51,7 @@
 	disabled={isHint}
 	data-testid="cell-{row}-{col}"
 	onclick={onclick}
+	oncontextmenu={(e) => { e.preventDefault(); onrightclick?.(); }}
 >
 	{#if value === 'water'}
 		<span class="water-dot"></span>
@@ -100,9 +103,22 @@
 	}
 
 	.cell.error {
-		border-color: #f43f5e;
-		box-shadow: 0 0 6px rgba(244, 63, 94, 0.4);
+		border-color: var(--color-error);
+		box-shadow: 0 0 6px var(--color-error-glow);
 		animation: error-flash 0.3s ease-in-out;
+	}
+
+	.cell.error::after {
+		content: '';
+		position: absolute;
+		inset: 5px;
+		border-radius: 2px;
+		pointer-events: none;
+		background:
+			linear-gradient(45deg, transparent 42%, var(--color-error) 42%, var(--color-error) 58%, transparent 58%),
+			linear-gradient(-45deg, transparent 42%, var(--color-error) 42%, var(--color-error) 58%, transparent 58%);
+		opacity: 0.35;
+		z-index: 1;
 	}
 
 	@keyframes error-flash {
@@ -115,7 +131,7 @@
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
-		background: #4a7a72;
+		background: var(--color-water-dot);
 	}
 
 	.ship-shape {
