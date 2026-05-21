@@ -1,0 +1,42 @@
+{
+  "name": "zzlepuh",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "tauri": "tauri",
+    "serve": "npm run tauri dev",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test:unit": "cd src-tauri && cargo test",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.60.0",
+    "@sveltejs/adapter-static": "^3.0.10",
+    "@sveltejs/kit": "^2.60.1",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@tailwindcss/vite": "^4.3.0",
+    "@tauri-apps/cli": "^2.11.2",
+    "eslint": "^10.4.0",
+    "eslint-plugin-svelte": "^3.17.1",
+    "globals": "^17.6.0",
+    "svelte": "^5.55.9",
+    "svelte-check": "^4.4.8",
+    "svelte-eslint-parser": "^1.6.1",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.4",
+    "vite": "^8.0.13"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.11.0",
+    "@tauri-apps/plugin-store": "^2.4.3"
+  }
+}

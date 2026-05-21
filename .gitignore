@@ -1,0 +1,10 @@
+node_modules/
+build/
+dist/
+.svelte-kit/
+src-tauri/target/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.DS_Store
+*.log

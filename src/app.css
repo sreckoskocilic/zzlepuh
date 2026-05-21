@@ -1,0 +1,38 @@
+@import 'tailwindcss';
+
+@theme {
+	--color-bg-primary: #0a0f0c;
+	--color-bg-secondary: #101810;
+	--color-bg-cell: #101810;
+	--color-bg-cell-water: #142530;
+	--color-bg-cell-empty: #1a2820;
+	--color-border-cell: #1a2a1a;
+	--color-accent: #34D399;
+	--color-accent-light: #6EE7B7;
+	--color-accent-dim: #1a3a28;
+	--color-text-primary: #dce5dc;
+	--color-text-muted: #7a9a7a;
+	--color-text-clue: #508050;
+	--color-text-clue-sat: #34D399;
+	--color-hint-bg: #0d1a14;
+	--color-hint-border: #1a3a28;
+	--color-surface: #121a14;
+	--color-surface-hover: #182218;
+	--font-sans: 'DM Sans', system-ui, sans-serif;
+}
+
+@font-face {
+	font-family: 'DM Sans';
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url('/fonts/DMSans-latin.woff2') format('woff2');
+}
+
+html, body {
+	height: 100%;
+	margin: 0;
+	background: var(--color-bg-primary);
+	color: var(--color-text-primary);
+	font-family: var(--font-sans);
+}
