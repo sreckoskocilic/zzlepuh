@@ -33,6 +33,10 @@ pub fn validate_nonogram_solution(
         return false;
     }
 
+    if row_clues.len() != rows || col_clues.len() != cols {
+        return false;
+    }
+
     if player_grid.iter().any(|row| row.iter().any(|c| *c == CellState::Empty)) {
         return false;
     }
@@ -68,6 +72,9 @@ pub fn get_nonogram_hint(
     if player_grid.iter().any(|row| row.len() != cols) {
         return None;
     }
+    if row_clues.len() != rows || col_clues.len() != cols {
+        return None;
+    }
 
     hint::get_hint(&row_clues, &col_clues, &player_grid, rows, cols)
 }
@@ -84,6 +91,9 @@ pub fn check_nonogram_errors(
     }
     let cols = player_grid[0].len();
     if player_grid.iter().any(|row| row.len() != cols) {
+        return vec![];
+    }
+    if row_clues.len() != rows || col_clues.len() != cols {
         return vec![];
     }
 

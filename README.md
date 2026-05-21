@@ -1,6 +1,6 @@
 # Zzlepuh
 
-Desktop puzzle game platform. Currently ships Bimaru (Battleship Solitaire).
+Desktop puzzle game platform. Ships Bimaru (Battleship Solitaire) and Nonogram (Paint by Numbers).
 
 Built with Tauri v2 + SvelteKit + Svelte 5 + Rust.
 
@@ -33,8 +33,8 @@ npm run tauri build  # Full desktop app (.dmg / .app)
 ## Tests
 
 ```bash
-npm run test:unit    # Rust tests (33 tests)
-npm run test:e2e     # Playwright E2E (20 tests, auto-starts dev server)
+npm run test:unit    # Rust tests (68 tests)
+npm run test:e2e     # Playwright E2E (39 tests, auto-starts dev server)
 npm run test:e2e:ui  # Playwright interactive UI mode
 ```
 
@@ -50,8 +50,8 @@ npm run lint:fix     # ESLint with auto-fix
 
 | Size | Fleet | Ship cells |
 |------|-------|------------|
-| 6×6 | 1×3, 1×2, 2×1 | 7 |
-| 8×8 | 1×4, 1×3, 2×2, 3×1 | 15 |
+| 6×6 | 1×3, 2×2, 3×1 | 10 |
+| 8×8 | 1×4, 1×3, 2×2, 3×1 | 14 |
 | 10×10 | 1×4, 2×3, 3×2, 4×1 | 20 |
 | 12×12 | 1×5, 1×4, 2×3, 3×2, 4×1 | 25 |
 
@@ -60,10 +60,12 @@ npm run lint:fix     # ESLint with auto-fix
 ```
 src/                    # SvelteKit frontend
   lib/games/bimaru/     # Bimaru components + state
+  lib/games/nonogram/   # Nonogram components + state
   lib/services/         # Tauri invoke wrappers
-  routes/               # Pages (/, /bimaru)
+  routes/               # Pages (/, /bimaru, /nonogram)
 src-tauri/              # Rust backend
-  src/games/bimaru/     # Generator, solver, hint engine
+  src/games/bimaru/     # Bimaru generator, solver, hint engine
+  src/games/nonogram/   # Nonogram generator, solver, hint engine
   src/commands/         # Tauri command handlers
 e2e/                    # Playwright E2E tests
 ```

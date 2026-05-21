@@ -18,8 +18,8 @@
 		cellSize?: number;
 	} = $props();
 
-	let maxRowClueLen = $derived(Math.max(...puzzle.row_clues.map((c) => c.length)));
-	let maxColClueLen = $derived(Math.max(...puzzle.col_clues.map((c) => c.length)));
+	let maxRowClueLen = $derived(Math.max(1, ...puzzle.row_clues.map((c) => c.length)));
+	let maxColClueLen = $derived(Math.max(1, ...puzzle.col_clues.map((c) => c.length)));
 	let totalCols = $derived(maxRowClueLen + puzzle.cols);
 	let totalRows = $derived(maxColClueLen + puzzle.rows);
 

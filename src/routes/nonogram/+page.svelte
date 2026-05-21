@@ -14,7 +14,7 @@
 
 	let difficulty: Difficulty = $state('medium');
 	let gridSize: GridSize = $state(10);
-	let winRecorded = false;
+	let winRecordedForGameId = -1;
 	let showLeaderboard = $state(false);
 	let lastRank: number | null = $state(null);
 	let areaWidth = $state(0);
@@ -35,7 +35,7 @@
 	async function handleNewGame(d: Difficulty, size: GridSize) {
 		difficulty = d;
 		gridSize = size;
-		winRecorded = false;
+		winRecordedForGameId = -1;
 		lastRank = null;
 		await nonogramState.startNewGame(d, size, size);
 		timer.restart();
@@ -75,15 +75,15 @@
 	}
 
 	$effect(() => {
-		if (nonogramState.isComplete && !winRecorded) {
-			winRecorded = true;
+		if (nonogramState.isComplete && winRecordedForGameId !== nonogramState.currentGameId) {
+			winRecordedForGameId = nonogramState.currentGameId;
 			timer.pause();
 			const gameDifficulty = (nonogramState.puzzle?.difficulty ?? difficulty) as Difficulty;
 			const gameSize = gridSize;
 			const ms = timer.elapsedMs;
 			const hints = nonogramState.hintsUsed;
 			setTimeout(async () => {
-				statsStore.recordWin('nonogram', gameDifficulty, ms, hints);
+				await statsStore.recordWin('nonogram', gameDifficulty, ms, hints);
 				const rank = await leaderboardStore.addEntry('nonogram', gameDifficulty, gameSize, ms, hints);
 				lastRank = rank;
 			}, 0);

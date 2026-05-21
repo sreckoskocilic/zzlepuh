@@ -5,6 +5,7 @@ const MAX_ENTRIES = 10;
 
 class LeaderboardStore {
 	private boards = $state<Record<string, LeaderboardEntry[]>>({});
+	private pending = new Map<string, Promise<LeaderboardEntry[]>>();
 
 	private key(gameId: string, difficulty: Difficulty, gridSize: number): string {
 		return `leaderboard:${gameId}:${difficulty}:${gridSize}`;
@@ -13,11 +14,15 @@ class LeaderboardStore {
 	async load(gameId: string, difficulty: Difficulty, gridSize: number): Promise<LeaderboardEntry[]> {
 		const k = this.key(gameId, difficulty, gridSize);
 		if (this.boards[k]) return this.boards[k];
-
-		const saved = await getData<LeaderboardEntry[]>(k);
-		const entries = saved ?? [];
-		this.boards[k] = entries;
-		return entries;
+		if (!this.pending.has(k)) {
+			this.pending.set(k, getData<LeaderboardEntry[]>(k).then(saved => {
+				const entries = saved ?? [];
+				this.boards[k] = entries;
+				this.pending.delete(k);
+				return entries;
+			}));
+		}
+		return this.pending.get(k)!;
 	}
 
 	async addEntry(

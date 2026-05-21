@@ -27,6 +27,7 @@ class NonogramState {
 	error = $state<string | null>(null);
 	errorCells = $state<Set<string>>(new Set());
 	private gameId = 0;
+	get currentGameId() { return this.gameId; }
 	private isValidating = false;
 	private errorTimeout: ReturnType<typeof setTimeout> | null = null;
 	private history = $state<Move[]>([]);

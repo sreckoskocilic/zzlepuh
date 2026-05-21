@@ -110,6 +110,9 @@ pub fn get_bimaru_hint(
     if player_grid.iter().any(|row| row.len() != cols) {
         return None;
     }
+    if row_clues.len() != rows || col_clues.len() != cols {
+        return None;
+    }
     if hints.len() != rows || hints.iter().any(|r| r.len() != cols) {
         return None;
     }
@@ -143,6 +146,9 @@ pub fn check_bimaru_errors(
     }
     let cols = player_grid[0].len();
     if player_grid.iter().any(|row| row.len() != cols) {
+        return vec![];
+    }
+    if row_clues.len() != rows || col_clues.len() != cols {
         return vec![];
     }
     if hints.len() != rows || hints.iter().any(|r| r.len() != cols) {

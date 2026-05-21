@@ -29,17 +29,6 @@ export function inferShipVisual(
 	return 'middle_h';
 }
 
-export function nextCellValue(current: CellValue): CellValue {
-	switch (current) {
-		case 'empty':
-			return 'water';
-		case 'water':
-			return 'ship';
-		case 'ship':
-			return 'empty';
-	}
-}
-
 export function countShipsInRow(grid: CellValue[][], row: number, cols: number): number {
 	let count = 0;
 	for (let c = 0; c < cols; c++) {

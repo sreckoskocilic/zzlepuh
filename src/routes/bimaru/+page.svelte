@@ -16,7 +16,7 @@
 
 	let difficulty: Difficulty = $state('medium');
 	let gridSize: GridSize = $state(10);
-	let winRecorded = false;
+	let winRecordedForGameId = -1;
 	let showLeaderboard = $state(false);
 	let lastRank: number | null = $state(null);
 	let areaWidth = $state(0);
@@ -36,7 +36,7 @@
 	async function handleNewGame(d: Difficulty, size: GridSize) {
 		difficulty = d;
 		gridSize = size;
-		winRecorded = false;
+		winRecordedForGameId = -1;
 		lastRank = null;
 		await bimaruState.startNewGame(d, size, size);
 		timer.restart();
@@ -84,15 +84,15 @@
 	}
 
 	$effect(() => {
-		if (bimaruState.isComplete && !winRecorded) {
-			winRecorded = true;
+		if (bimaruState.isComplete && winRecordedForGameId !== bimaruState.currentGameId) {
+			winRecordedForGameId = bimaruState.currentGameId;
 			timer.pause();
 			const gameDifficulty = (bimaruState.puzzle?.difficulty ?? difficulty) as Difficulty;
 			const gameSize = gridSize;
 			const ms = timer.elapsedMs;
 			const hints = bimaruState.hintsUsed;
 			setTimeout(async () => {
-				statsStore.recordWin('bimaru', gameDifficulty, ms, hints);
+				await statsStore.recordWin('bimaru', gameDifficulty, ms, hints);
 				const rank = await leaderboardStore.addEntry('bimaru', gameDifficulty, gameSize, ms, hints);
 				lastRank = rank;
 			}, 0);

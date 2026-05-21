@@ -12,7 +12,7 @@
     "serve": "npm run tauri dev",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test:unit": "cd src-tauri && cargo test",
+    "test:unit": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

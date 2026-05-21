@@ -23,6 +23,7 @@ class BimaruState {
 	error = $state<string | null>(null);
 	errorCells = $state<Set<string>>(new Set());
 	private gameId = 0;
+	get currentGameId() { return this.gameId; }
 	private isValidating = false;
 	private errorTimeout: ReturnType<typeof setTimeout> | null = null;
 	private history = $state<Move[]>([]);
@@ -101,11 +102,7 @@ class BimaruState {
 		this.checkWin();
 	}
 
-	cycleCell(row: number, col: number): void {
-		this.placeShip(row, col);
-	}
-
-	setCell(row: number, col: number, value: CellValue): void {
+	private setCell(row: number, col: number, value: CellValue): void {
 		if (!this.puzzle || this.isComplete) return;
 		if (this.puzzle.hints[row][col] !== 'empty') return;
 
