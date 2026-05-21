@@ -7,6 +7,12 @@
 			name: 'Bimaru',
 			description: 'Battleship solitaire — place ships using row and column clues',
 			route: '/bimaru'
+		},
+		{
+			id: 'nonogram',
+			name: 'Nonogram',
+			description: 'Paint by numbers — fill cells to reveal a hidden picture',
+			route: '/nonogram'
 		}
 	];
 </script>
@@ -21,28 +27,31 @@
 		{#each games as game (game.id)}
 			<a href={game.route} class="game-card">
 				<div class="card-icon">
-					<svg width="32" height="32" viewBox="0 0 32 32">
-						<circle cx="16" cy="8" r="4" fill="var(--color-accent)" />
-						<rect x="4" y="16" width="8" height="4" rx="2" fill="var(--color-accent)" />
-						<rect x="20" y="20" width="8" height="4" rx="2" fill="var(--color-accent)" />
-						<rect x="8" y="26" width="12" height="4" rx="2" fill="var(--color-accent)" />
-					</svg>
+					{#if game.id === 'bimaru'}
+						<svg width="32" height="32" viewBox="0 0 32 32">
+							<circle cx="16" cy="8" r="4" fill="var(--color-accent)" />
+							<rect x="4" y="16" width="8" height="4" rx="2" fill="var(--color-accent)" />
+							<rect x="20" y="20" width="8" height="4" rx="2" fill="var(--color-accent)" />
+							<rect x="8" y="26" width="12" height="4" rx="2" fill="var(--color-accent)" />
+						</svg>
+					{:else if game.id === 'nonogram'}
+						<svg width="32" height="32" viewBox="0 0 32 32">
+							<rect x="4" y="4" width="7" height="7" rx="1" fill="var(--color-accent)" />
+							<rect x="12.5" y="4" width="7" height="7" rx="1" fill="var(--color-accent)" opacity="0.25" />
+							<rect x="21" y="4" width="7" height="7" rx="1" fill="var(--color-accent)" />
+							<rect x="4" y="12.5" width="7" height="7" rx="1" fill="var(--color-accent)" opacity="0.25" />
+							<rect x="12.5" y="12.5" width="7" height="7" rx="1" fill="var(--color-accent)" />
+							<rect x="21" y="12.5" width="7" height="7" rx="1" fill="var(--color-accent)" opacity="0.25" />
+							<rect x="4" y="21" width="7" height="7" rx="1" fill="var(--color-accent)" />
+							<rect x="12.5" y="21" width="7" height="7" rx="1" fill="var(--color-accent)" opacity="0.25" />
+							<rect x="21" y="21" width="7" height="7" rx="1" fill="var(--color-accent)" />
+						</svg>
+					{/if}
 				</div>
 				<h3>{game.name}</h3>
 				<p>{game.description}</p>
 			</a>
 		{/each}
-
-		<div class="game-card coming-soon">
-			<div class="card-icon">
-				<svg width="32" height="32" viewBox="0 0 32 32">
-					<rect x="6" y="6" width="20" height="20" rx="3" fill="none" stroke="var(--color-text-clue)" stroke-width="1.5" stroke-dasharray="3 3" />
-					<text x="16" y="20" text-anchor="middle" fill="var(--color-text-clue)" font-size="14">?</text>
-				</svg>
-			</div>
-			<h3>More coming</h3>
-			<p>Kakuro, Nonograms, and more puzzle games</p>
-		</div>
 	</div>
 </div>
 
@@ -92,12 +101,6 @@
 	.game-card:hover {
 		border-color: var(--color-accent-dim);
 		background: var(--color-surface-hover);
-	}
-
-	.game-card.coming-soon {
-		opacity: 0.4;
-		cursor: default;
-		pointer-events: none;
 	}
 
 	.card-icon {

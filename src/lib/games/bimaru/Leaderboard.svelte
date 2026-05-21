@@ -36,7 +36,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each entries as entry, i}
+				{#each entries as entry, i (i)}
 					<tr class:highlight={i === highlightRank}>
 						<td class="rank">{i + 1}</td>
 						<td class="time">{formatTime(entry.timeMs)}</td>

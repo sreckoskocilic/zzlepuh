@@ -21,6 +21,10 @@ pub fn run() {
             commands::bimaru::validate_bimaru_solution,
             commands::bimaru::get_bimaru_hint,
             commands::bimaru::check_bimaru_errors,
+            commands::nonogram::generate_nonogram_puzzle,
+            commands::nonogram::validate_nonogram_solution,
+            commands::nonogram::get_nonogram_hint,
+            commands::nonogram::check_nonogram_errors,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

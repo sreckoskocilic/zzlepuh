@@ -1,0 +1,225 @@
+import { test, expect } from '@playwright/test';
+import { NonogramPage } from './fixtures/nonogram-page';
+import { injectTauriMock } from './fixtures/tauri-mock';
+
+test.describe('Nonogram', () => {
+	let nono: NonogramPage;
+
+	test.beforeEach(async ({ page }) => {
+		await injectTauriMock(page);
+		nono = new NonogramPage(page);
+		await nono.goto();
+	});
+
+	test('shows empty state before starting game', async () => {
+		await expect(nono.emptyState).toBeVisible();
+		await expect(nono.emptyState).toContainText('New Game');
+	});
+
+	test('new game generates 5x5 board', async () => {
+		await nono.sizeSelect.selectOption('5');
+		await nono.startNewGame();
+		await expect(nono.allCells).toHaveCount(25);
+	});
+
+	test('timer starts and ticks', async () => {
+		await nono.sizeSelect.selectOption('5');
+		await nono.startNewGame();
+		await expect(nono.timer).toHaveText('00:00');
+		await expect(nono.timer).not.toHaveText('00:00', { timeout: 3000 });
+	});
+
+	test('left-click fills cell, right-click marks cell', async () => {
+		await nono.sizeSelect.selectOption('5');
+		await nono.startNewGame();
+
+		const cell = nono.cell(0, 0);
+
+		// Left-click: fill
+		await cell.click();
+		await expect(cell).toHaveClass(/filled/);
+
+		// Left-click again: back to empty
+		await cell.click();
+		await expect(cell).not.toHaveClass(/filled/);
+
+		// Right-click: mark
+		await cell.click({ button: 'right' });
+		await expect(cell).toHaveClass(/marked/);
+
+		// Right-click again: back to empty
+		await cell.click({ button: 'right' });
+		await expect(cell).not.toHaveClass(/marked/);
+	});
+
+	test('hint places a correct cell', async () => {
+		await nono.sizeSelect.selectOption('5');
+		await nono.startNewGame();
+
+		const filledBefore = await nono.filledCells.count();
+		const markedBefore = await nono.markedCells.count();
+		await nono.btnHint.click();
+
+		const filledAfter = await nono.filledCells.count();
+		const markedAfter = await nono.markedCells.count();
+		expect(filledAfter + markedAfter).toBeGreaterThan(filledBefore + markedBefore);
+	});
+
+	test('reset clears all player moves', async () => {
+		await nono.sizeSelect.selectOption('5');
+		await nono.startNewGame();
+
+		await nono.cell(0, 0).click();
+		await nono.cell(0, 1).click();
+		expect(await nono.filledCells.count()).toBe(2);
+
+		await nono.btnReset.click();
+		await expect(nono.filledCells).toHaveCount(0);
+		await expect(nono.markedCells).toHaveCount(0);
+	});
+
+	test('difficulty selector works', async () => {
+		await expect(nono.difficultySelect).toHaveValue('medium');
+		await nono.difficultySelect.selectOption('easy');
+		await expect(nono.difficultySelect).toHaveValue('easy');
+		await nono.difficultySelect.selectOption('hard');
+		await expect(nono.difficultySelect).toHaveValue('hard');
+	});
+
+	test('size selector works', async () => {
+		await expect(nono.sizeSelect).toHaveValue('10');
+		await nono.sizeSelect.selectOption('5');
+		await expect(nono.sizeSelect).toHaveValue('5');
+		await nono.sizeSelect.selectOption('25');
+		await expect(nono.sizeSelect).toHaveValue('25');
+	});
+
+	test('stats bar visible during game', async () => {
+		await nono.sizeSelect.selectOption('5');
+		await nono.startNewGame();
+		await expect(nono.statsBar).toBeVisible();
+		await expect(nono.statsBar).toContainText('Games:');
+	});
+
+	test('hint and reset disabled before game, enabled after', async () => {
+		await expect(nono.btnHint).toBeDisabled();
+		await expect(nono.btnReset).toBeDisabled();
+		await nono.sizeSelect.selectOption('5');
+		await nono.startNewGame();
+		await expect(nono.btnHint).toBeEnabled();
+		await expect(nono.btnReset).toBeEnabled();
+	});
+
+	test('undo reverts last move', async () => {
+		await nono.sizeSelect.selectOption('5');
+		await nono.startNewGame();
+
+		const cell = nono.cell(0, 0);
+		await cell.click();
+		await expect(cell).toHaveClass(/filled/);
+
+		await nono.page.keyboard.press('Control+z');
+		await expect(cell).not.toHaveClass(/filled/);
+	});
+
+	test('redo restores undone move', async () => {
+		await nono.sizeSelect.selectOption('5');
+		await nono.startNewGame();
+
+		const cell = nono.cell(0, 0);
+		await cell.click();
+		await expect(cell).toHaveClass(/filled/);
+
+		await nono.page.keyboard.press('Control+z');
+		await expect(cell).not.toHaveClass(/filled/);
+
+		await nono.page.keyboard.press('Control+Shift+z');
+		await expect(cell).toHaveClass(/filled/);
+	});
+});
+
+test.describe('Nonogram Win Flow', () => {
+	test('solve puzzle and see win overlay', async ({ page }) => {
+		await injectTauriMock(page);
+		const nono = new NonogramPage(page);
+		await nono.goto();
+		await nono.sizeSelect.selectOption('5');
+		await nono.startNewGame();
+
+		// Mock solution:
+		// row0: [T, T, F, F, F]
+		// row1: [F, F, F, T, F]
+		// row2: [T, T, T, F, F]
+		// row3: [F, T, F, T, F]
+		// row4: [T, F, F, F, F]
+
+		const filled = [
+			[0, 0], [0, 1],
+			[1, 3],
+			[2, 0], [2, 1], [2, 2],
+			[3, 1], [3, 3],
+			[4, 0]
+		];
+		const marked = [
+			[0, 2], [0, 3], [0, 4],
+			[1, 0], [1, 1], [1, 2], [1, 4],
+			[2, 3], [2, 4],
+			[3, 0], [3, 2], [3, 4],
+			[4, 1], [4, 2], [4, 3], [4, 4]
+		];
+
+		for (const [r, c] of filled) {
+			await nono.cell(r, c).click();
+		}
+		for (const [r, c] of marked) {
+			await nono.cell(r, c).click({ button: 'right' });
+		}
+
+		await expect(nono.winOverlay).toBeVisible({ timeout: 5000 });
+	});
+});
+
+test.describe('Nonogram Check', () => {
+	test('check highlights wrong cells', async ({ page }) => {
+		await injectTauriMock(page);
+		const nono = new NonogramPage(page);
+		await nono.goto();
+		await nono.sizeSelect.selectOption('5');
+		await nono.startNewGame();
+
+		// Cell (0,0) should be filled, mark it instead (wrong)
+		await nono.cell(0, 0).click({ button: 'right' });
+		await expect(nono.cell(0, 0)).toHaveClass(/marked/);
+
+		await nono.btnCheck.click();
+		await expect(nono.cell(0, 0)).toHaveClass(/error/, { timeout: 2000 });
+
+		// Error clears after ~2.5s
+		await expect(nono.cell(0, 0)).not.toHaveClass(/error/, { timeout: 4000 });
+	});
+
+	test('check button disabled before game', async ({ page }) => {
+		await injectTauriMock(page);
+		const nono = new NonogramPage(page);
+		await nono.goto();
+		await expect(nono.btnCheck).toBeDisabled();
+	});
+});
+
+test.describe('Nonogram Navigation', () => {
+	test.beforeEach(async ({ page }) => {
+		await injectTauriMock(page);
+	});
+
+	test('navigate home to nonogram', async ({ page }) => {
+		await page.goto('/');
+		await page.locator('a[href="/nonogram"]').first().click();
+		await expect(page).toHaveURL('/nonogram');
+	});
+
+	test('sidebar shows nonogram link', async ({ page }) => {
+		await page.goto('/');
+		const sidebarLink = page.locator('nav.sidebar a[href="/nonogram"]');
+		await expect(sidebarLink).toBeVisible();
+	});
+});

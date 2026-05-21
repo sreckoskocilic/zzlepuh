@@ -1,16 +1,14 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { bimaruState } from '$lib/games/bimaru/state.svelte';
-	import Board from '$lib/games/bimaru/Board.svelte';
-	import Fleet from '$lib/games/bimaru/Fleet.svelte';
-	import Controls from '$lib/games/bimaru/Controls.svelte';
+	import { nonogramState } from '$lib/games/nonogram/state.svelte';
+	import Board from '$lib/games/nonogram/Board.svelte';
+	import Controls from '$lib/games/nonogram/Controls.svelte';
 	import WinOverlay from '$lib/games/bimaru/WinOverlay.svelte';
 	import { timer } from '$lib/stores/timer.svelte';
 	import { statsStore } from '$lib/stores/stats.svelte';
 	import { leaderboardStore } from '$lib/stores/leaderboard.svelte';
-	import Leaderboard from '$lib/games/bimaru/Leaderboard.svelte';
 	import type { Difficulty } from '$lib/types/game';
-	import type { GridSize } from '$lib/games/bimaru/Controls.svelte';
+	import type { GridSize } from '$lib/games/nonogram/Controls.svelte';
 
 	onDestroy(() => timer.pause());
 
@@ -23,14 +21,17 @@
 	let areaHeight = $state(0);
 
 	let cellSize = $derived.by(() => {
-		if (!bimaruState.puzzle || !areaWidth || !areaHeight) return 36;
-		const { rows, cols } = bimaruState.puzzle;
-		const fleetSpace = 150;
-		const availW = areaWidth - fleetSpace;
-		const availH = areaHeight;
-		const fromW = availW / (cols + 1) - 3;
-		const fromH = availH / (rows + 1) - 3;
-		return Math.floor(Math.max(24, Math.min(72, Math.min(fromW, fromH))));
+		if (!nonogramState.puzzle || !areaWidth || !areaHeight) return 28;
+		const { rows, cols, row_clues, col_clues } = nonogramState.puzzle;
+		const maxRowClueLen = Math.max(...row_clues.map((c: number[]) => c.length));
+		const maxColClueLen = Math.max(...col_clues.map((c: number[]) => c.length));
+		const rowClueWidth = maxRowClueLen * 18 + 10;
+		const colClueHeight = maxColClueLen * 20 + 10;
+		const availW = areaWidth - rowClueWidth;
+		const availH = areaHeight - colClueHeight;
+		const fromW = availW / cols - 3;
+		const fromH = availH / rows - 3;
+		return Math.floor(Math.max(14, Math.min(fromW, fromH)));
 	});
 
 	async function handleNewGame(d: Difficulty, size: GridSize) {
@@ -38,73 +39,64 @@
 		gridSize = size;
 		winRecorded = false;
 		lastRank = null;
-		await bimaruState.startNewGame(d, size, size);
+		await nonogramState.startNewGame(d, size, size);
 		timer.restart();
 	}
 
 	function handleHint() {
-		bimaruState.requestHint();
+		nonogramState.requestHint();
 	}
 
 	function handleCheck() {
-		bimaruState.requestCheck();
+		nonogramState.requestCheck();
 	}
 
 	function handleReset() {
-		bimaruState.reset();
+		nonogramState.reset();
 		timer.restart();
 	}
 
 	function handleCellClick(row: number, col: number) {
-		bimaruState.placeShip(row, col);
+		nonogramState.fillCell(row, col);
 	}
 
 	function handleCellRightClick(row: number, col: number) {
-		bimaruState.placeWater(row, col);
-	}
-
-	function handleRowFill(row: number) {
-		bimaruState.fillRowWater(row);
-	}
-
-	function handleColFill(col: number) {
-		bimaruState.fillColWater(col);
+		nonogramState.markCell(row, col);
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.metaKey || e.ctrlKey) {
 			if (e.key === 'z' && !e.shiftKey) {
 				e.preventDefault();
-				bimaruState.undo();
+				nonogramState.undo();
 			} else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
 				e.preventDefault();
-				bimaruState.redo();
+				nonogramState.redo();
 			}
 		}
 	}
 
 	$effect(() => {
-		if (bimaruState.isComplete && !winRecorded) {
+		if (nonogramState.isComplete && !winRecorded) {
 			winRecorded = true;
 			timer.pause();
-			const gameDifficulty = (bimaruState.puzzle?.difficulty ?? difficulty) as Difficulty;
+			const gameDifficulty = (nonogramState.puzzle?.difficulty ?? difficulty) as Difficulty;
 			const gameSize = gridSize;
 			const ms = timer.elapsedMs;
-			const hints = bimaruState.hintsUsed;
+			const hints = nonogramState.hintsUsed;
 			setTimeout(async () => {
-				statsStore.recordWin('bimaru', gameDifficulty, ms, hints);
-				const rank = await leaderboardStore.addEntry('bimaru', gameDifficulty, gameSize, ms, hints);
+				statsStore.recordWin('nonogram', gameDifficulty, ms, hints);
+				const rank = await leaderboardStore.addEntry('nonogram', gameDifficulty, gameSize, ms, hints);
 				lastRank = rank;
 			}, 0);
 		}
 	});
 
 	$effect(() => {
-		leaderboardStore.load('bimaru', difficulty, gridSize);
+		leaderboardStore.load('nonogram', difficulty, gridSize);
 	});
 
-	let leaderboardEntries = $derived(leaderboardStore.getEntries('bimaru', difficulty, gridSize));
-	let stats = $derived(statsStore.getStats('bimaru'));
+	let stats = $derived(statsStore.getStats('nonogram'));
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -113,8 +105,8 @@
 	<div class="toolbar">
 		<div class="toolbar-controls">
 			<Controls
-				isGenerating={bimaruState.isGenerating}
-				isActive={bimaruState.isActive}
+				isGenerating={nonogramState.isGenerating}
+				isActive={nonogramState.isActive}
 				onNewGame={handleNewGame}
 				onHint={handleHint}
 				onCheck={handleCheck}
@@ -124,54 +116,49 @@
 			/>
 		</div>
 
-		<button class="btn-undo" disabled={!bimaruState.canUndo} onclick={() => bimaruState.undo()} title="Undo (Ctrl+Z)">
+		<button class="btn-undo" disabled={!nonogramState.canUndo} onclick={() => nonogramState.undo()} title="Undo (Ctrl+Z)">
 			<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
 				<path d="M3 5h6a3 3 0 0 1 0 6H7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
 				<path d="M5.5 2.5 3 5l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>
 		</button>
-		<button class="btn-undo" disabled={!bimaruState.canRedo} onclick={() => bimaruState.redo()} title="Redo (Ctrl+Shift+Z)">
+		<button class="btn-undo" disabled={!nonogramState.canRedo} onclick={() => nonogramState.redo()} title="Redo (Ctrl+Shift+Z)">
 			<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="transform: scaleX(-1)">
 				<path d="M3 5h6a3 3 0 0 1 0 6H7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
 				<path d="M5.5 2.5 3 5l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
 			</svg>
 		</button>
 
-		{#if bimaruState.puzzle}
+		{#if nonogramState.puzzle}
 			<span class="timer" data-testid="timer">{timer.formatted}</span>
 		{/if}
-
 	</div>
 
-	{#if bimaruState.error}
-		<p class="error" data-testid="error">{bimaruState.error}</p>
+	{#if nonogramState.error}
+		<p class="error" data-testid="error">{nonogramState.error}</p>
 	{/if}
 
-	{#if bimaruState.puzzle}
+	{#if nonogramState.puzzle}
 		<div class="board-area" bind:clientWidth={areaWidth} bind:clientHeight={areaHeight}>
 			<div class="board-container">
 				<Board
-					puzzle={bimaruState.puzzle}
-					grid={bimaruState.grid}
+					puzzle={nonogramState.puzzle}
+					grid={nonogramState.grid}
 					onCellClick={handleCellClick}
 					onCellRightClick={handleCellRightClick}
-					onRowFill={handleRowFill}
-					onColFill={handleColFill}
-					hasError={(r, c) => bimaruState.hasError(r, c)}
+					hasError={(r, c) => nonogramState.hasError(r, c)}
 					{cellSize}
 				/>
 
-				{#if bimaruState.isComplete}
+				{#if nonogramState.isComplete}
 					<WinOverlay
-						hintsUsed={bimaruState.hintsUsed}
+						hintsUsed={nonogramState.hintsUsed}
 						elapsedMs={timer.elapsedMs}
 						leaderboardRank={lastRank}
 						onNewGame={() => handleNewGame(difficulty, gridSize)}
 					/>
 				{/if}
 			</div>
-
-			<Fleet puzzle={bimaruState.puzzle} grid={bimaruState.grid} />
 		</div>
 
 		<div class="stats-bar" data-testid="stats-bar">
@@ -185,11 +172,7 @@
 				{showLeaderboard ? 'Hide Board' : 'Leaderboard'}
 			</button>
 		</div>
-
-		{#if showLeaderboard}
-			<Leaderboard entries={leaderboardEntries} highlightRank={lastRank} />
-		{/if}
-	{:else if !bimaruState.isGenerating}
+	{:else if !nonogramState.isGenerating}
 		<div class="empty-state" data-testid="empty-state">
 			<p>Click "New Game" to start</p>
 		</div>
@@ -236,7 +219,6 @@
 	.board-area {
 		flex: 1;
 		display: flex;
-		gap: 1.5rem;
 		align-items: center;
 		justify-content: center;
 		min-height: 0;
@@ -251,8 +233,8 @@
 		display: flex;
 		gap: 1.2rem;
 		font-size: 0.85rem;
-		color: var(--color-text-muted);
-		opacity: 0.6;
+		color: var(--color-text-primary);
+		opacity: 0.7;
 		padding: 0.4rem 0;
 	}
 

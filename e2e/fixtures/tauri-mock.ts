@@ -180,6 +180,86 @@ export async function injectTauriMock(page: Page, opts: MockOptions & { easy?: b
 						return null;
 					}
 
+					if (cmd === 'generate_nonogram_puzzle') {
+						const rows = args?.rows ?? 5;
+						const cols = args?.cols ?? 5;
+						const rowClues = [[2], [1], [3], [1, 1], [1]];
+						const colClues = [[2], [1, 1], [1, 1], [2], [1]];
+						return {
+							rows,
+							cols,
+							row_clues: rowClues,
+							col_clues: colClues,
+							difficulty: args?.difficulty ?? 'easy'
+						};
+					}
+
+					if (cmd === 'validate_nonogram_solution') {
+						const grid = args?.playerGrid;
+						if (!grid) return false;
+						const nSol = [
+							[true, true, false, false, false],
+							[false, false, false, true, false],
+							[true, true, true, false, false],
+							[false, true, false, true, false],
+							[true, false, false, false, false]
+						];
+						for (let r = 0; r < grid.length; r++) {
+							for (let c = 0; c < grid[r].length; c++) {
+								if (grid[r][c] === 'empty') return false;
+								const isFilled = grid[r][c] === 'filled';
+								if (isFilled !== nSol[r][c]) return false;
+							}
+						}
+						return true;
+					}
+
+					if (cmd === 'check_nonogram_errors') {
+						const grid = args?.playerGrid;
+						if (!grid) return [];
+						const nSol = [
+							[true, true, false, false, false],
+							[false, false, false, true, false],
+							[true, true, true, false, false],
+							[false, true, false, true, false],
+							[true, false, false, false, false]
+						];
+						const errors: [number, number][] = [];
+						for (let r = 0; r < grid.length; r++) {
+							for (let c = 0; c < grid[r].length; c++) {
+								if (grid[r][c] === 'empty') continue;
+								const isFilled = grid[r][c] === 'filled';
+								if (isFilled !== nSol[r][c]) errors.push([r, c]);
+							}
+						}
+						return errors;
+					}
+
+					if (cmd === 'get_nonogram_hint') {
+						const grid = args?.playerGrid;
+						if (!grid) return null;
+						const nSol = [
+							[true, true, false, false, false],
+							[false, false, false, true, false],
+							[true, true, true, false, false],
+							[false, true, false, true, false],
+							[true, false, false, false, false]
+						];
+						for (let r = 0; r < grid.length; r++) {
+							for (let c = 0; c < grid[r].length; c++) {
+								if (grid[r][c] === 'empty') {
+									return {
+										row: r,
+										col: c,
+										filled: nSol[r][c],
+										reason: 'test hint'
+									};
+								}
+							}
+						}
+						return null;
+					}
+
 					if (cmd === 'plugin:store|load') return 1;
 					if (cmd === 'plugin:store|get') return [null, false];
 					if (cmd === 'plugin:store|set') return null;
