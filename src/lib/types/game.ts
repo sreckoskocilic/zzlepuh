@@ -30,6 +30,12 @@ export interface GameStats {
 	>;
 }
 
+export interface LeaderboardEntry {
+	timeMs: number;
+	hintsUsed: number;
+	date: string;
+}
+
 export function emptyGameStats(): GameStats {
 	const emptyDiff = () => ({ played: 0, won: 0, bestTimeMs: null, totalTimeMs: 0 });
 	return {

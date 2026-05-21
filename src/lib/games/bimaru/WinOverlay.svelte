@@ -2,10 +2,12 @@
 	let {
 		hintsUsed = 0,
 		elapsedMs = 0,
+		leaderboardRank = null,
 		onNewGame
 	}: {
 		hintsUsed?: number;
 		elapsedMs?: number;
+		leaderboardRank?: number | null;
 		onNewGame: () => void;
 	} = $props();
 
@@ -29,6 +31,9 @@
 				<span class="value">{hintsUsed}</span>
 			</div>
 		</div>
+		{#if leaderboardRank !== null}
+			<p class="rank-msg">#{leaderboardRank + 1} on the leaderboard!</p>
+		{/if}
 		<button class="btn-play" data-testid="btn-play-again" onclick={onNewGame}>Play Again</button>
 	</div>
 </div>
@@ -83,6 +88,13 @@
 		font-size: 1.35rem;
 		font-weight: 600;
 		color: var(--color-text-primary);
+	}
+
+	.rank-msg {
+		color: var(--color-accent);
+		font-size: 0.95rem;
+		font-weight: 600;
+		margin-bottom: 1rem;
 	}
 
 	.btn-play {
