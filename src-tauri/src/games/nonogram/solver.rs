@@ -48,8 +48,7 @@ pub fn solve_with_partial(
     backtrack(grid, row_clues, col_clues, rows, cols)
 }
 
-/// Returns true if propagation alone (no backtracking) fully solves the puzzle.
-/// If true, the puzzle is guaranteed to have exactly one solution.
+#[allow(dead_code)]
 pub fn is_line_solvable(
     row_clues: &[Vec<usize>],
     col_clues: &[Vec<usize>],
@@ -58,6 +57,23 @@ pub fn is_line_solvable(
 ) -> bool {
     let mut grid = vec![vec![Cell::Unknown; cols]; rows];
     propagate(&mut grid, row_clues, col_clues, rows, cols) && is_complete(&grid)
+}
+
+/// Runs propagation and returns (no_contradiction, cells_determined).
+pub fn propagation_progress(
+    row_clues: &[Vec<usize>],
+    col_clues: &[Vec<usize>],
+    rows: usize,
+    cols: usize,
+) -> (bool, usize) {
+    let mut grid = vec![vec![Cell::Unknown; cols]; rows];
+    let ok = propagate(&mut grid, row_clues, col_clues, rows, cols);
+    let determined = grid
+        .iter()
+        .flat_map(|r| r.iter())
+        .filter(|&&c| c != Cell::Unknown)
+        .count();
+    (ok, determined)
 }
 
 pub fn has_unique_solution(

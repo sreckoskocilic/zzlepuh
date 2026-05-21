@@ -20,6 +20,8 @@
 
 	let maxRowClueLen = $derived(Math.max(...puzzle.row_clues.map((c) => c.length)));
 	let maxColClueLen = $derived(Math.max(...puzzle.col_clues.map((c) => c.length)));
+	let totalCols = $derived(maxRowClueLen + puzzle.cols);
+	let totalRows = $derived(maxColClueLen + puzzle.rows);
 
 	function isRowSatisfied(r: number): boolean {
 		const line = grid[r];
@@ -51,116 +53,149 @@
 	function arrEq(a: number[], b: number[]): boolean {
 		return a.length === b.length && a.every((v, i) => v === b[i]);
 	}
+
+	function thickR(i: number, j: number): boolean {
+		if (j === totalCols - 1) return true;
+		if (j === maxRowClueLen - 1) return true;
+		if (j >= maxRowClueLen) {
+			const gc = j - maxRowClueLen;
+			return (gc + 1) % 5 === 0 && gc < puzzle.cols - 1;
+		}
+		return false;
+	}
+
+	function thickB(i: number, _j: number): boolean {
+		if (i === totalRows - 1) return true;
+		if (i === maxColClueLen - 1) return true;
+		if (i >= maxColClueLen) {
+			const gr = i - maxColClueLen;
+			return (gr + 1) % 5 === 0 && gr < puzzle.rows - 1;
+		}
+		return false;
+	}
 </script>
 
 <div
-	class="board-wrapper"
+	class="board"
 	style:--cell-size="{cellSize}px"
-	style:--row-clue-cols={maxRowClueLen}
-	style:--col-clue-rows={maxColClueLen}
+	style:--clue-font="{Math.max(11, Math.round(cellSize * 0.55))}px"
+	style:grid-template-columns="repeat({totalCols}, {cellSize}px)"
+	style:grid-template-rows="repeat({totalRows}, {cellSize}px)"
 >
-	<!-- Column clues area -->
-	<div class="col-clues-spacer"></div>
-	<div class="col-clues-row">
-		{#each puzzle.col_clues as clue, c (c)}
-			<div class="col-clue" class:satisfied={isColSatisfied(c)}>
-				{#each Array(maxColClueLen - clue.length) as _, i (i)}
-					<span class="clue-num empty-clue"></span>
-				{/each}
-				{#each clue as num, i (i)}
-					<span class="clue-num">{num}</span>
-				{/each}
-			</div>
-		{/each}
-	</div>
+	{#each Array(totalRows) as _, i (i)}
+		{#each Array(totalCols) as _, j (j)}
+			{@const inGrid = i >= maxColClueLen && j >= maxRowClueLen}
+			{@const inColClue = i < maxColClueLen && j >= maxRowClueLen}
+			{@const inRowClue = i >= maxColClueLen && j < maxRowClueLen}
 
-	<!-- Grid rows with row clues -->
-	{#each Array(puzzle.rows) as _, r (r)}
-		<div class="row-clue" class:satisfied={isRowSatisfied(r)}>
-			{#each Array(maxRowClueLen - puzzle.row_clues[r].length) as _, i (i)}
-				<span class="clue-num empty-clue"></span>
-			{/each}
-			{#each puzzle.row_clues[r] as num, i (i)}
-				<span class="clue-num">{num}</span>
-			{/each}
-		</div>
-		<div class="grid-row">
-			{#each Array(puzzle.cols) as _, c (c)}
-				<Cell
-					value={grid[r][c]}
-					row={r}
-					col={c}
-					isError={hasError(r, c)}
-					onclick={() => onCellClick(r, c)}
-					onrightclick={() => onCellRightClick?.(r, c)}
-				/>
-			{/each}
-		</div>
+			{#if inGrid}
+				{@const gr = i - maxColClueLen}
+				{@const gc = j - maxRowClueLen}
+				<div class="bc" class:tr={thickR(i, j)} class:tb={thickB(i, j)}>
+					<Cell
+						value={grid[gr][gc]}
+						row={gr}
+						col={gc}
+						isError={hasError(gr, gc)}
+						onclick={() => onCellClick(gr, gc)}
+						onrightclick={() => onCellRightClick?.(gr, gc)}
+					/>
+				</div>
+			{:else if inColClue}
+				{@const gc = j - maxRowClueLen}
+				{@const clue = puzzle.col_clues[gc]}
+				{@const offset = maxColClueLen - clue.length}
+				<div
+					class="bc clue"
+					class:satisfied={isColSatisfied(gc)}
+					class:tr={thickR(i, j)}
+					class:tb={thickB(i, j)}
+				>
+					{#if i >= offset}
+						<span class="cn">{clue[i - offset]}</span>
+					{/if}
+				</div>
+			{:else if inRowClue}
+				{@const gr = i - maxColClueLen}
+				{@const clue = puzzle.row_clues[gr]}
+				{@const offset = maxRowClueLen - clue.length}
+				<div
+					class="bc clue"
+					class:satisfied={isRowSatisfied(gr)}
+					class:tr={thickR(i, j)}
+					class:tb={thickB(i, j)}
+				>
+					{#if j >= offset}
+						<span class="cn">{clue[j - offset]}</span>
+					{/if}
+				</div>
+			{:else}
+				<div class="bc corner" class:tr={thickR(i, j)} class:tb={thickB(i, j)}></div>
+			{/if}
+		{/each}
 	{/each}
 </div>
 
 <style>
-	.board-wrapper {
+	.board {
 		display: grid;
-		grid-template-columns: auto 1fr;
-		gap: 0;
 		width: fit-content;
+		border-radius: 3px;
+		overflow: hidden;
+		box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+
+		--cell-bg: #e8e4d8;
+		--cell-hover: #dcd8cc;
+		--cell-fill: #1a1c1a;
+		--cell-x: #8a8880;
+		--gl: #c0b8a8;
+		--gl-thick: #8a8070;
+
+		border-top: 2px solid color-mix(in srgb, var(--color-text-muted) 40%, var(--color-accent-dim));
+		border-left: 2px solid color-mix(in srgb, var(--color-text-muted) 40%, var(--color-accent-dim));
 	}
 
-	.col-clues-spacer {
-		min-width: 0;
-	}
-
-	.col-clues-row {
-		display: flex;
-	}
-
-	.col-clue {
-		width: calc(var(--cell-size) + 3px);
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: flex-end;
-		padding-bottom: 0.3rem;
-		color: var(--color-text-primary);
-		opacity: 0.8;
-		transition: color 0.15s, opacity 0.15s;
-	}
-
-	.col-clue.satisfied {
-		color: var(--color-accent);
-		opacity: 1;
-	}
-
-	.row-clue {
+	.bc {
+		border-right: 1px solid var(--gl);
+		border-bottom: 1px solid var(--gl);
 		display: flex;
 		align-items: center;
-		justify-content: flex-end;
-		gap: 0.15rem;
-		padding-right: 0.4rem;
+		justify-content: center;
+	}
+
+	.bc.tr {
+		border-right: 2px solid var(--gl-thick);
+	}
+
+	.bc.tb {
+		border-bottom: 2px solid var(--gl-thick);
+	}
+
+	.clue, .corner {
+		background: var(--color-accent-dim);
+		border-color: var(--color-border-cell);
+	}
+
+	.clue {
 		color: var(--color-text-primary);
-		opacity: 0.8;
-		transition: color 0.15s, opacity 0.15s;
+		transition: color 0.15s;
 	}
 
-	.row-clue.satisfied {
+	.clue.satisfied {
 		color: var(--color-accent);
-		opacity: 1;
 	}
 
-	.clue-num {
-		font-size: 1.1rem;
+	.clue.tr, .corner.tr {
+		border-right-color: color-mix(in srgb, var(--color-text-muted) 40%, var(--color-accent-dim));
+	}
+
+	.clue.tb, .corner.tb {
+		border-bottom-color: color-mix(in srgb, var(--color-text-muted) 40%, var(--color-accent-dim));
+	}
+
+	.cn {
+		font-size: var(--clue-font, 0.9rem);
 		font-weight: 600;
-		min-width: 1.1em;
-		text-align: center;
-		line-height: 1.35;
-	}
-
-	.empty-clue {
-		visibility: hidden;
-	}
-
-	.grid-row {
-		display: flex;
+		line-height: 1;
 	}
 </style>

@@ -25,12 +25,10 @@
 		const { rows, cols, row_clues, col_clues } = nonogramState.puzzle;
 		const maxRowClueLen = Math.max(...row_clues.map((c: number[]) => c.length));
 		const maxColClueLen = Math.max(...col_clues.map((c: number[]) => c.length));
-		const rowClueWidth = maxRowClueLen * 18 + 10;
-		const colClueHeight = maxColClueLen * 20 + 10;
-		const availW = areaWidth - rowClueWidth;
-		const availH = areaHeight - colClueHeight;
-		const fromW = availW / cols - 3;
-		const fromH = availH / rows - 3;
+		const totalCols = maxRowClueLen + cols;
+		const totalRows = maxColClueLen + rows;
+		const fromW = (areaWidth - 4) / totalCols;
+		const fromH = (areaHeight - 4) / totalRows;
 		return Math.floor(Math.max(14, Math.min(fromW, fromH)));
 	});
 
