@@ -4,7 +4,6 @@ import { getData, setData } from '$lib/services/persistence';
 
 class StatsStore {
 	stats = $state<Record<string, GameStats>>({});
-	loaded = $state(false);
 	private pending = new Map<string, Promise<GameStats>>();
 
 	async load(gameId: string): Promise<GameStats> {
@@ -13,7 +12,6 @@ class StatsStore {
 			this.pending.set(gameId, getData<GameStats>(`stats:${gameId}`).then(saved => {
 				const s = saved ?? emptyGameStats();
 				this.stats[gameId] = s;
-				this.loaded = true;
 				this.pending.delete(gameId);
 				return s;
 			}));
@@ -40,18 +38,6 @@ class StatsStore {
 		if (d.bestTimeMs === null || timeMs < d.bestTimeMs) {
 			d.bestTimeMs = timeMs;
 		}
-
-		this.stats[gameId] = s;
-		await setData(`stats:${gameId}`, s);
-	}
-
-	async recordLoss(gameId: string, difficulty: Difficulty): Promise<void> {
-		const s = structuredClone(await this.load(gameId));
-		s.gamesPlayed++;
-		s.currentStreak = 0;
-		s.lastPlayedAt = new Date().toISOString();
-
-		s.byDifficulty[difficulty].played++;
 
 		this.stats[gameId] = s;
 		await setData(`stats:${gameId}`, s);

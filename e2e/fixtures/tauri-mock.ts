@@ -54,7 +54,7 @@ export function makeMockPuzzle() {
 	};
 }
 
-export function makeEasyMockPuzzle() {
+function makeEasyMockPuzzle() {
 	const size = 6;
 	const hints: string[][] = Array.from({ length: size }, () =>
 		Array.from({ length: size }, () => 'water')
@@ -88,7 +88,7 @@ export function makeEasyMockPuzzle() {
 	};
 }
 
-export function getEasySolutionGrid(): string[][] {
+function getEasySolutionGrid(): string[][] {
 	const puzzle = makeEasyMockPuzzle();
 	return puzzle.hints.map((row) =>
 		row.map((cell) => {
@@ -98,14 +98,14 @@ export function getEasySolutionGrid(): string[][] {
 	);
 }
 
-export function getEasySolutionWithPlayer(): string[][] {
+function getEasySolutionWithPlayer(): string[][] {
 	const grid = getEasySolutionGrid();
 	grid[4][1] = 'ship';
 	grid[5][4] = 'ship';
 	return grid;
 }
 
-export function getSolutionGrid(): string[][] {
+function getSolutionGrid(): string[][] {
 	const puzzle = makeMockPuzzle();
 	return puzzle.hints.map((row) =>
 		row.map((cell) => (cell === 'ship' ? 'ship' : 'water'))

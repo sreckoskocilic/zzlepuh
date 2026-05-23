@@ -1,10 +1,5 @@
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
-export interface GridSize {
-	rows: number;
-	cols: number;
-}
-
 export interface GameInfo {
 	id: string;
 	name: string;

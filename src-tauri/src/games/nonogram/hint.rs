@@ -10,7 +10,7 @@ pub fn get_hint(
 ) -> Option<NonogramHint> {
     let solution = solver::solve_with_partial(
         row_clues, col_clues, rows, cols, Some(&player_grid.to_vec()),
-    )?;
+    ).or_else(|| solver::solve(row_clues, col_clues, rows, cols))?;
 
     for r in 0..rows {
         for c in 0..cols {

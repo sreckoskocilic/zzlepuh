@@ -4,6 +4,7 @@
 	import Board from '$lib/games/nonogram/Board.svelte';
 	import Controls from '$lib/games/nonogram/Controls.svelte';
 	import WinOverlay from '$lib/games/bimaru/WinOverlay.svelte';
+	import Leaderboard from '$lib/games/bimaru/Leaderboard.svelte';
 	import { timer } from '$lib/stores/timer.svelte';
 	import { statsStore } from '$lib/stores/stats.svelte';
 	import { leaderboardStore } from '$lib/stores/leaderboard.svelte';
@@ -94,6 +95,11 @@
 		leaderboardStore.load('nonogram', difficulty, gridSize);
 	});
 
+	$effect(() => {
+		statsStore.load('nonogram');
+	});
+
+	let leaderboardEntries = $derived(leaderboardStore.getEntries('nonogram', difficulty, gridSize));
 	let stats = $derived(statsStore.getStats('nonogram'));
 </script>
 
@@ -170,6 +176,10 @@
 				{showLeaderboard ? 'Hide Board' : 'Leaderboard'}
 			</button>
 		</div>
+
+		{#if showLeaderboard}
+			<Leaderboard entries={leaderboardEntries} highlightRank={lastRank} />
+		{/if}
 	{:else if !nonogramState.isGenerating}
 		<div class="empty-state" data-testid="empty-state">
 			<p>Click "New Game" to start</p>

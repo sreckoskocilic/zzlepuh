@@ -18,7 +18,6 @@ class BimaruState {
 	grid = $state<CellValue[][]>([]);
 	isComplete = $state(false);
 	hintsUsed = $state(0);
-	startedAt = $state<number | null>(null);
 	isGenerating = $state(false);
 	error = $state<string | null>(null);
 	errorCells = $state<Set<string>>(new Set());
@@ -57,7 +56,6 @@ class BimaruState {
 			this.grid = this.initGridFromHints(puzzle);
 			this.isComplete = false;
 			this.hintsUsed = 0;
-			this.startedAt = Date.now();
 			this.gameId++;
 			this.isValidating = false;
 			this.history = [];
@@ -99,14 +97,6 @@ class BimaruState {
 		this.history.push({ changes: [{ row, col, prev: current, next }] });
 		this.grid[row][col] = next;
 		this.redoStack = [];
-		this.checkWin();
-	}
-
-	private setCell(row: number, col: number, value: CellValue): void {
-		if (!this.puzzle || this.isComplete) return;
-		if (this.puzzle.hints[row][col] !== 'empty') return;
-
-		this.grid[row][col] = value;
 		this.checkWin();
 	}
 

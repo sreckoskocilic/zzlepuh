@@ -103,6 +103,10 @@
 		leaderboardStore.load('bimaru', difficulty, gridSize);
 	});
 
+	$effect(() => {
+		statsStore.load('bimaru');
+	});
+
 	let leaderboardEntries = $derived(leaderboardStore.getEntries('bimaru', difficulty, gridSize));
 	let stats = $derived(statsStore.getStats('bimaru'));
 </script>
