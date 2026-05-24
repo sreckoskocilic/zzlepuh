@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Difficulty } from '$lib/types/game';
 
-	export type GridSize = 5 | 10 | 15 | 20;
+	export type GridSize = 4 | 5 | 6 | 7 | 8 | 9;
 
 	let {
 		isGenerating = false,
@@ -11,7 +11,7 @@
 		onCheck,
 		onReset,
 		difficulty = $bindable('medium'),
-		gridSize = $bindable(10 as GridSize)
+		gridSize = $bindable(6 as GridSize)
 	}: {
 		isGenerating?: boolean;
 		isActive?: boolean;
@@ -25,7 +25,12 @@
 </script>
 
 <div class="controls">
-	<button class="btn-primary" data-testid="btn-new-game" onclick={() => onNewGame(difficulty, gridSize)} disabled={isGenerating}>
+	<button
+		class="btn-primary"
+		data-testid="btn-new-game"
+		onclick={() => onNewGame(difficulty, gridSize)}
+		disabled={isGenerating}
+	>
 		{isGenerating ? 'Generating...' : 'New Game'}
 	</button>
 	<button class="btn" data-testid="btn-hint" onclick={onHint} disabled={!isActive}>Hint</button>
@@ -34,10 +39,12 @@
 
 	<div class="selectors">
 		<select class="select" data-testid="size-select" bind:value={gridSize}>
+			<option value={4}>4×4</option>
 			<option value={5}>5×5</option>
-			<option value={10}>10×10</option>
-			<option value={15}>15×15</option>
-			<option value={20}>20×20</option>
+			<option value={6}>6×6</option>
+			<option value={7}>7×7</option>
+			<option value={8}>8×8</option>
+			<option value={9}>9×9</option>
 		</select>
 		<select class="select" data-testid="difficulty-select" bind:value={difficulty}>
 			<option value="easy">Easy</option>

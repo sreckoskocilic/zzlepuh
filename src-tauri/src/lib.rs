@@ -25,6 +25,10 @@ pub fn run() {
             commands::nonogram::validate_nonogram_solution,
             commands::nonogram::get_nonogram_hint,
             commands::nonogram::check_nonogram_errors,
+            commands::calcudoku::generate_calcudoku_puzzle,
+            commands::calcudoku::validate_calcudoku_solution,
+            commands::calcudoku::get_calcudoku_hint,
+            commands::calcudoku::check_calcudoku_errors,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

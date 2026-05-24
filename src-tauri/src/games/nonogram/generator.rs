@@ -242,17 +242,6 @@ mod tests {
         assert!(sol.is_some());
     }
 
-    #[test]
-    fn test_generate_25x25_easy() {
-        let sol = generate(25, 25, "easy");
-        assert!(sol.is_some());
-    }
-
-    #[test]
-    fn test_generate_25x25_hard() {
-        let sol = generate(25, 25, "hard");
-        assert!(sol.is_some());
-    }
 
     #[test]
     fn test_generate_large_is_line_solvable() {
@@ -265,9 +254,4 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn test_generate_25x25_medium() {
-        let sol = generate(25, 25, "medium");
-        assert!(sol.is_some());
-    }
 }

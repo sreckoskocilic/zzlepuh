@@ -7,7 +7,8 @@
 
 	const games = [
 		{ id: 'bimaru', name: 'Bimaru', route: '/bimaru' },
-		{ id: 'nonogram', name: 'Nonogram', route: '/nonogram' }
+		{ id: 'nonogram', name: 'Nonogram', route: '/nonogram' },
+		{ id: 'calcudoku', name: 'Calcudoku', route: '/calcudoku' }
 	];
 </script>
 
@@ -47,6 +48,18 @@
 						<rect x="2" y="13.5" width="4.5" height="4.5" rx="0.5" fill="currentColor" />
 						<rect x="7.75" y="13.5" width="4.5" height="4.5" rx="0.5" fill="currentColor" opacity="0.25" />
 						<rect x="13.5" y="13.5" width="4.5" height="4.5" rx="0.5" fill="currentColor" />
+					</svg>
+				{:else if game.id === 'calcudoku'}
+					<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+						<rect x="2" y="2" width="16" height="16" rx="1" stroke="currentColor" stroke-width="1.5"/>
+						<line x1="2" y1="10" x2="18" y2="10" stroke="currentColor" stroke-width="1.5"/>
+						<line x1="10" y1="2" x2="10" y2="18" stroke="currentColor" stroke-width="1.5"/>
+						<path d="M4.5 6h3M6 4.5v3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+						<path d="M13 6h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+						<path d="M4.5 15l3-3M4.5 12l3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+						<circle cx="14.5" cy="12.8" r="0.6" fill="currentColor"/>
+						<path d="M13 14h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+						<circle cx="14.5" cy="15.2" r="0.6" fill="currentColor"/>
 					</svg>
 				{/if}
 				<span class="nav-label">{game.name}</span>

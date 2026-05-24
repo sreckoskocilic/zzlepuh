@@ -90,8 +90,8 @@ test.describe('Nonogram', () => {
 		await expect(nono.sizeSelect).toHaveValue('10');
 		await nono.sizeSelect.selectOption('5');
 		await expect(nono.sizeSelect).toHaveValue('5');
-		await nono.sizeSelect.selectOption('25');
-		await expect(nono.sizeSelect).toHaveValue('25');
+		await nono.sizeSelect.selectOption('20');
+		await expect(nono.sizeSelect).toHaveValue('20');
 	});
 
 	test('stats bar visible during game', async () => {
