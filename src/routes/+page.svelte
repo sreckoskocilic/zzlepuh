@@ -13,6 +13,12 @@
 			name: 'Nonogram',
 			description: 'Paint by numbers — fill cells to reveal a hidden picture',
 			route: '/nonogram'
+		},
+		{
+			id: 'calcudoku',
+			name: 'Calcudoku',
+			description: 'Number cages — fill rows and columns with unique digits that satisfy cage math',
+			route: '/calcudoku'
 		}
 	];
 </script>
@@ -45,6 +51,18 @@
 							<rect x="4" y="21" width="7" height="7" rx="1" fill="var(--color-accent)" />
 							<rect x="12.5" y="21" width="7" height="7" rx="1" fill="var(--color-accent)" opacity="0.25" />
 							<rect x="21" y="21" width="7" height="7" rx="1" fill="var(--color-accent)" />
+						</svg>
+					{:else if game.id === 'calcudoku'}
+						<svg width="32" height="32" viewBox="0 0 32 32">
+							<rect x="3" y="3" width="26" height="26" rx="2" stroke="var(--color-accent)" stroke-width="2" fill="none"/>
+							<line x1="3" y1="16" x2="29" y2="16" stroke="var(--color-accent)" stroke-width="2"/>
+							<line x1="16" y1="3" x2="16" y2="29" stroke="var(--color-accent)" stroke-width="2"/>
+							<path d="M8 9.5h4M10 7.5v4" stroke="var(--color-accent)" stroke-width="1.8" stroke-linecap="round"/>
+							<path d="M21 9.5h4" stroke="var(--color-accent)" stroke-width="1.8" stroke-linecap="round"/>
+							<path d="M8 24l4-4M8 20l4 4" stroke="var(--color-accent)" stroke-width="1.8" stroke-linecap="round"/>
+							<circle cx="23" cy="20.5" r="0.9" fill="var(--color-accent)"/>
+							<path d="M21 22.5h4" stroke="var(--color-accent)" stroke-width="1.8" stroke-linecap="round"/>
+							<circle cx="23" cy="24.5" r="0.9" fill="var(--color-accent)"/>
 						</svg>
 					{/if}
 				</div>

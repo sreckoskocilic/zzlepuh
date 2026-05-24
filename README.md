@@ -1,8 +1,8 @@
 # Zzlepuh
 
-Desktop puzzle game platform. Ships Bimaru (Battleship Solitaire) and Nonogram (Paint by Numbers).
+Puzzle games for desktop. Bimaru (battleship solitaire), Nonogram (paint by numbers), Calcudoku (KenKen).
 
-Built with Tauri v2 + SvelteKit + Svelte 5 + Rust.
+Tauri v2, SvelteKit, Svelte 5, Rust.
 
 ## Prerequisites
 
@@ -33,8 +33,8 @@ npm run tauri build  # Full desktop app (.dmg / .app)
 ## Tests
 
 ```bash
-npm run test:unit    # Rust tests (68 tests)
-npm run test:e2e     # Playwright E2E (39 tests, auto-starts dev server)
+npm run test:unit    # Rust tests (102 tests)
+npm run test:e2e     # Playwright E2E (67 tests, auto-starts dev server)
 npm run test:e2e:ui  # Playwright interactive UI mode
 ```
 
@@ -61,11 +61,13 @@ npm run lint:fix     # ESLint with auto-fix
 src/                    # SvelteKit frontend
   lib/games/bimaru/     # Bimaru components + state
   lib/games/nonogram/   # Nonogram components + state
+  lib/games/calcudoku/  # Calcudoku components + state
   lib/services/         # Tauri invoke wrappers
-  routes/               # Pages (/, /bimaru, /nonogram)
+  routes/               # Pages (/, /bimaru, /nonogram, /calcudoku)
 src-tauri/              # Rust backend
   src/games/bimaru/     # Bimaru generator, solver, hint engine
   src/games/nonogram/   # Nonogram generator, solver, hint engine
+  src/games/calcudoku/  # Calcudoku generator, solver, hint engine
   src/commands/         # Tauri command handlers
 e2e/                    # Playwright E2E tests
 ```

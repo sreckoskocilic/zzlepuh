@@ -260,6 +260,79 @@ export async function injectTauriMock(page: Page, opts: MockOptions & { easy?: b
 						return null;
 					}
 
+					if (cmd === 'generate_calcudoku_puzzle') {
+						const s = args?.size ?? 4;
+						return {
+							size: s,
+							cages: [
+								{ cells: [[0,0],[0,1]], operation: 'add', target: 3 },
+								{ cells: [[0,2],[0,3]], operation: 'subtract', target: 1 },
+								{ cells: [[1,0],[1,1]], operation: 'multiply', target: 12 },
+								{ cells: [[1,2],[2,2]], operation: 'add', target: 5 },
+								{ cells: [[1,3],[2,3]], operation: 'subtract', target: 1 },
+								{ cells: [[2,0],[3,0]], operation: 'divide', target: 2 },
+								{ cells: [[2,1],[3,1]], operation: 'subtract', target: 2 },
+								{ cells: [[3,2],[3,3]], operation: 'subtract', target: 1 }
+							],
+							difficulty: args?.difficulty ?? 'easy'
+						};
+					}
+
+					if (cmd === 'validate_calcudoku_solution') {
+						const grid = args?.playerGrid;
+						if (!grid) return false;
+						const cSol = [
+							[1,2,3,4],
+							[3,4,1,2],
+							[2,1,4,3],
+							[4,3,2,1]
+						];
+						for (let r = 0; r < cSol.length; r++) {
+							for (let c = 0; c < cSol[r].length; c++) {
+								if (grid[r][c] !== cSol[r][c]) return false;
+							}
+						}
+						return true;
+					}
+
+					if (cmd === 'check_calcudoku_errors') {
+						const grid = args?.playerGrid;
+						if (!grid) return [];
+						const cSol = [
+							[1,2,3,4],
+							[3,4,1,2],
+							[2,1,4,3],
+							[4,3,2,1]
+						];
+						const errors: [number, number][] = [];
+						for (let r = 0; r < cSol.length; r++) {
+							for (let c = 0; c < cSol[r].length; c++) {
+								if (grid[r][c] === 0) continue;
+								if (grid[r][c] !== cSol[r][c]) errors.push([r, c]);
+							}
+						}
+						return errors;
+					}
+
+					if (cmd === 'get_calcudoku_hint') {
+						const grid = args?.playerGrid;
+						if (!grid) return null;
+						const cSol = [
+							[1,2,3,4],
+							[3,4,1,2],
+							[2,1,4,3],
+							[4,3,2,1]
+						];
+						for (let r = 0; r < cSol.length; r++) {
+							for (let c = 0; c < cSol[r].length; c++) {
+								if (grid[r][c] === 0) {
+									return { row: r, col: c, value: cSol[r][c], reason: 'test hint' };
+								}
+							}
+						}
+						return null;
+					}
+
 					if (cmd === 'plugin:store|load') return 1;
 					if (cmd === 'plugin:store|get') return [null, false];
 					if (cmd === 'plugin:store|set') return null;
