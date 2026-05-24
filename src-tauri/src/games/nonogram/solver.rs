@@ -9,6 +9,7 @@ enum Cell {
     Empty,
 }
 
+#[cfg(test)]
 pub fn solve(
     row_clues: &[Vec<usize>],
     col_clues: &[Vec<usize>],
@@ -28,6 +29,7 @@ pub fn solve_timed(
     solve_internal(row_clues, col_clues, rows, cols, None, Some(Instant::now() + timeout))
 }
 
+#[cfg(test)]
 pub fn solve_with_partial(
     row_clues: &[Vec<usize>],
     col_clues: &[Vec<usize>],

@@ -2,6 +2,7 @@ use std::time::{Duration, Instant};
 
 use super::types::*;
 
+#[cfg(test)]
 pub fn solve(puzzle: &CalcudokuPuzzle) -> Option<Vec<Vec<u8>>> {
     solve_internal(puzzle, None, None)
 }
@@ -10,6 +11,7 @@ pub fn solve_timed(puzzle: &CalcudokuPuzzle, timeout: Duration) -> Option<Vec<Ve
     solve_internal(puzzle, None, Some(Instant::now() + timeout))
 }
 
+#[cfg(test)]
 pub fn solve_with_partial(
     puzzle: &CalcudokuPuzzle,
     partial: Option<&Vec<Vec<u8>>>,
