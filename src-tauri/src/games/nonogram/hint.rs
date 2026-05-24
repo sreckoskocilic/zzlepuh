@@ -1,5 +1,9 @@
+use std::time::Duration;
+
 use super::solver;
 use super::types::*;
+
+const SOLVE_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub fn get_hint(
     row_clues: &[Vec<usize>],
@@ -8,9 +12,9 @@ pub fn get_hint(
     rows: usize,
     cols: usize,
 ) -> Option<NonogramHint> {
-    let solution = solver::solve_with_partial(
-        row_clues, col_clues, rows, cols, Some(&player_grid.to_vec()),
-    ).or_else(|| solver::solve(row_clues, col_clues, rows, cols))?;
+    let solution = solver::solve_with_partial_timed(
+        row_clues, col_clues, rows, cols, Some(&player_grid.to_vec()), SOLVE_TIMEOUT,
+    ).or_else(|| solver::solve_timed(row_clues, col_clues, rows, cols, SOLVE_TIMEOUT))?;
 
     for r in 0..rows {
         for c in 0..cols {

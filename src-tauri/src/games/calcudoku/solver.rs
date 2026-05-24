@@ -1,12 +1,34 @@
+use std::time::{Duration, Instant};
+
 use super::types::*;
 
 pub fn solve(puzzle: &CalcudokuPuzzle) -> Option<Vec<Vec<u8>>> {
-    solve_with_partial(puzzle, None)
+    solve_internal(puzzle, None, None)
+}
+
+pub fn solve_timed(puzzle: &CalcudokuPuzzle, timeout: Duration) -> Option<Vec<Vec<u8>>> {
+    solve_internal(puzzle, None, Some(Instant::now() + timeout))
 }
 
 pub fn solve_with_partial(
     puzzle: &CalcudokuPuzzle,
     partial: Option<&Vec<Vec<u8>>>,
+) -> Option<Vec<Vec<u8>>> {
+    solve_internal(puzzle, partial, None)
+}
+
+pub fn solve_with_partial_timed(
+    puzzle: &CalcudokuPuzzle,
+    partial: Option<&Vec<Vec<u8>>>,
+    timeout: Duration,
+) -> Option<Vec<Vec<u8>>> {
+    solve_internal(puzzle, partial, Some(Instant::now() + timeout))
+}
+
+fn solve_internal(
+    puzzle: &CalcudokuPuzzle,
+    partial: Option<&Vec<Vec<u8>>>,
+    deadline: Option<Instant>,
 ) -> Option<Vec<Vec<u8>>> {
     let n = puzzle.size;
     let mut domains = initial_domains(n);
@@ -29,7 +51,7 @@ pub fn solve_with_partial(
         return Some(extract_solution(&domains));
     }
 
-    backtrack(domains, puzzle)
+    backtrack(domains, puzzle, deadline)
 }
 
 pub fn has_unique_solution(puzzle: &CalcudokuPuzzle) -> bool {
@@ -230,7 +252,12 @@ fn enumerate_combos(
 fn backtrack(
     domains: Vec<Vec<Vec<u8>>>,
     puzzle: &CalcudokuPuzzle,
+    deadline: Option<Instant>,
 ) -> Option<Vec<Vec<u8>>> {
+    if deadline.is_some_and(|d| Instant::now() >= d) {
+        return None;
+    }
+
     let Some((r, c)) = find_best_cell(&domains) else {
         return Some(extract_solution(&domains));
     };
@@ -239,7 +266,7 @@ fn backtrack(
         let mut d = domains.clone();
         d[r][c] = vec![val];
         if propagate(&mut d, puzzle) {
-            if let Some(sol) = backtrack(d, puzzle) {
+            if let Some(sol) = backtrack(d, puzzle, deadline) {
                 return Some(sol);
             }
         }

@@ -1,5 +1,13 @@
 use crate::games::calcudoku::{generator, hint, solver, types::*};
 
+fn cages_in_bounds(puzzle: &CalcudokuPuzzle) -> bool {
+    let n = puzzle.size;
+    puzzle
+        .cages
+        .iter()
+        .all(|cage| cage.cells.iter().all(|&(r, c)| r < n && c < n))
+}
+
 #[tauri::command]
 pub async fn generate_calcudoku_puzzle(
     difficulty: String,
@@ -29,6 +37,9 @@ pub fn validate_calcudoku_solution(
         return false;
     }
     if player_grid.iter().any(|row| row.contains(&0)) {
+        return false;
+    }
+    if !cages_in_bounds(&puzzle) {
         return false;
     }
 
@@ -76,6 +87,9 @@ pub fn get_calcudoku_hint(
     if player_grid.iter().any(|row| row.len() != n) {
         return None;
     }
+    if !cages_in_bounds(&puzzle) {
+        return None;
+    }
 
     hint::get_hint(&puzzle, &player_grid)
 }
@@ -92,8 +106,11 @@ pub fn check_calcudoku_errors(
     if player_grid.iter().any(|row| row.len() != n) {
         return vec![];
     }
+    if !cages_in_bounds(&puzzle) {
+        return vec![];
+    }
 
-    let Some(solution) = solver::solve(&puzzle) else {
+    let Some(solution) = solver::solve_timed(&puzzle, std::time::Duration::from_secs(5)) else {
         return vec![];
     };
 

@@ -191,8 +191,10 @@ class NonogramState {
 					puzzle.col_clues
 				);
 				if (valid && this.gameId === currentGameId) {
-					const stillFilled = !this.grid.some((row) => row.some((cell) => cell === 'empty'));
-					if (stillFilled) {
+					const gridUnchanged = this.grid.every((row, r) =>
+						row.every((cell, c) => cell === grid[r][c])
+					);
+					if (gridUnchanged) {
 						this.isComplete = true;
 					}
 				}

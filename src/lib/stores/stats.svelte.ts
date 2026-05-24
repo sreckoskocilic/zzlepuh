@@ -43,6 +43,16 @@ class StatsStore {
 		await setData(`stats:${gameId}`, s);
 	}
 
+	async recordLoss(gameId: string): Promise<void> {
+		const s = structuredClone(await this.load(gameId));
+		s.gamesPlayed++;
+		s.currentStreak = 0;
+		s.lastPlayedAt = new Date().toISOString();
+
+		this.stats[gameId] = s;
+		await setData(`stats:${gameId}`, s);
+	}
+
 	getStats(gameId: string): GameStats {
 		return this.stats[gameId] ?? emptyGameStats();
 	}

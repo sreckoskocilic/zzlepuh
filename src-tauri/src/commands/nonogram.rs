@@ -97,7 +97,7 @@ pub fn check_nonogram_errors(
         return vec![];
     }
 
-    let Some(solution) = solver::solve(&row_clues, &col_clues, rows, cols) else {
+    let Some(solution) = solver::solve_timed(&row_clues, &col_clues, rows, cols, std::time::Duration::from_secs(5)) else {
         return vec![];
     };
 

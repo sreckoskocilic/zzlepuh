@@ -11,6 +11,7 @@
 	import type { Difficulty } from '$lib/types/game';
 	import type { GridSize } from '$lib/games/nonogram/Controls.svelte';
 
+	timer.reset();
 	onDestroy(() => timer.pause());
 
 	let difficulty: Difficulty = $state('medium');
@@ -34,6 +35,9 @@
 	});
 
 	async function handleNewGame(d: Difficulty, size: GridSize) {
+		if (nonogramState.isActive) {
+			statsStore.recordLoss('nonogram');
+		}
 		difficulty = d;
 		gridSize = size;
 		winRecordedForGameId = -1;

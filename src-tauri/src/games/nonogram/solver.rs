@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use super::types::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -13,7 +15,17 @@ pub fn solve(
     rows: usize,
     cols: usize,
 ) -> Option<Vec<Vec<bool>>> {
-    solve_with_partial(row_clues, col_clues, rows, cols, None)
+    solve_internal(row_clues, col_clues, rows, cols, None, None)
+}
+
+pub fn solve_timed(
+    row_clues: &[Vec<usize>],
+    col_clues: &[Vec<usize>],
+    rows: usize,
+    cols: usize,
+    timeout: Duration,
+) -> Option<Vec<Vec<bool>>> {
+    solve_internal(row_clues, col_clues, rows, cols, None, Some(Instant::now() + timeout))
 }
 
 pub fn solve_with_partial(
@@ -22,6 +34,28 @@ pub fn solve_with_partial(
     rows: usize,
     cols: usize,
     partial: Option<&Vec<Vec<CellState>>>,
+) -> Option<Vec<Vec<bool>>> {
+    solve_internal(row_clues, col_clues, rows, cols, partial, None)
+}
+
+pub fn solve_with_partial_timed(
+    row_clues: &[Vec<usize>],
+    col_clues: &[Vec<usize>],
+    rows: usize,
+    cols: usize,
+    partial: Option<&Vec<Vec<CellState>>>,
+    timeout: Duration,
+) -> Option<Vec<Vec<bool>>> {
+    solve_internal(row_clues, col_clues, rows, cols, partial, Some(Instant::now() + timeout))
+}
+
+fn solve_internal(
+    row_clues: &[Vec<usize>],
+    col_clues: &[Vec<usize>],
+    rows: usize,
+    cols: usize,
+    partial: Option<&Vec<Vec<CellState>>>,
+    deadline: Option<Instant>,
 ) -> Option<Vec<Vec<bool>>> {
     let mut grid = vec![vec![Cell::Unknown; cols]; rows];
 
@@ -45,7 +79,7 @@ pub fn solve_with_partial(
         return Some(to_bool_grid(&grid));
     }
 
-    backtrack(grid, row_clues, col_clues, rows, cols)
+    backtrack(grid, row_clues, col_clues, rows, cols, deadline)
 }
 
 #[allow(dead_code)]
@@ -311,7 +345,12 @@ fn backtrack(
     col_clues: &[Vec<usize>],
     rows: usize,
     cols: usize,
+    deadline: Option<Instant>,
 ) -> Option<Vec<Vec<bool>>> {
+    if deadline.is_some_and(|d| Instant::now() >= d) {
+        return None;
+    }
+
     let Some((r, c)) = find_unknown(&grid) else {
         return Some(to_bool_grid(&grid));
     };
@@ -320,7 +359,7 @@ fn backtrack(
         let mut g = grid.clone();
         g[r][c] = val;
         if propagate(&mut g, row_clues, col_clues, rows, cols) {
-            if let Some(solution) = backtrack(g, row_clues, col_clues, rows, cols) {
+            if let Some(solution) = backtrack(g, row_clues, col_clues, rows, cols, deadline) {
                 return Some(solution);
             }
         }

@@ -259,8 +259,10 @@ class CalcudokuState {
 			try {
 				const valid = await validateCalcudokuSolution(grid, puzzle);
 				if (valid && this.gameId === currentGameId) {
-					const stillFilled = !this.grid.some((row) => row.some((cell) => cell === 0));
-					if (stillFilled) {
+					const gridUnchanged = this.grid.every((row, r) =>
+						row.every((cell, c) => cell === grid[r][c])
+					);
+					if (gridUnchanged) {
 						this.isComplete = true;
 					}
 				}

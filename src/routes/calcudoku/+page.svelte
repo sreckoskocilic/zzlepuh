@@ -11,6 +11,7 @@
 	import type { Difficulty } from '$lib/types/game';
 	import type { GridSize } from '$lib/games/calcudoku/Controls.svelte';
 
+	timer.reset();
 	onDestroy(() => timer.pause());
 
 	let difficulty: Difficulty = $state('medium');
@@ -30,6 +31,9 @@
 	});
 
 	async function handleNewGame(d: Difficulty, size: GridSize) {
+		if (calcudokuState.isActive) {
+			statsStore.recordLoss('calcudoku');
+		}
 		difficulty = d;
 		gridSize = size;
 		winRecordedForGameId = -1;

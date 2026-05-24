@@ -46,11 +46,12 @@ class LeaderboardStore {
 
 		if (idx >= MAX_ENTRIES) return null;
 
-		entries.splice(idx, 0, entry);
-		if (entries.length > MAX_ENTRIES) entries.length = MAX_ENTRIES;
+		const updated = [...entries];
+		updated.splice(idx, 0, entry);
+		if (updated.length > MAX_ENTRIES) updated.length = MAX_ENTRIES;
 
-		this.boards[k] = [...entries];
-		await setData(k, entries);
+		this.boards[k] = updated;
+		await setData(k, updated);
 
 		return idx;
 	}

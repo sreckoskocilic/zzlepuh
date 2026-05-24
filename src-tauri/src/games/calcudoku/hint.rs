@@ -1,12 +1,17 @@
+use std::time::Duration;
+
 use super::solver;
 use super::types::*;
+
+const SOLVE_TIMEOUT: Duration = Duration::from_secs(5);
 
 pub fn get_hint(
     puzzle: &CalcudokuPuzzle,
     player_grid: &[Vec<u8>],
 ) -> Option<CalcudokuHint> {
-    let solution = solver::solve_with_partial(puzzle, Some(&player_grid.to_vec()))
-        .or_else(|| solver::solve(puzzle))?;
+    let solution =
+        solver::solve_with_partial_timed(puzzle, Some(&player_grid.to_vec()), SOLVE_TIMEOUT)
+            .or_else(|| solver::solve_timed(puzzle, SOLVE_TIMEOUT))?;
 
     let n = puzzle.size;
     for r in 0..n {

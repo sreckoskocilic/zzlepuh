@@ -270,10 +270,10 @@ class BimaruState {
 					puzzle.fleet
 				);
 				if (valid && this.gameId === currentGameId) {
-					const stillFilled = !this.grid.some((row: CellValue[]) =>
-						row.some((cell: CellValue) => cell === 'empty')
+					const gridUnchanged = this.grid.every((row, r) =>
+						row.every((cell, c) => cell === grid[r][c])
 					);
-					if (stillFilled) {
+					if (gridUnchanged) {
 						this.isComplete = true;
 					}
 				}
