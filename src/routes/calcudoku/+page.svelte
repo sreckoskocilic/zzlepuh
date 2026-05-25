@@ -27,7 +27,7 @@
 		const n = calcudokuState.puzzle.size;
 		const fromW = (areaWidth - 4) / n;
 		const fromH = (areaHeight - 48) / n;
-		return Math.floor(Math.max(32, Math.min(64, fromW, fromH)));
+		return Math.floor(Math.max(32, Math.min(96, fromW, fromH)));
 	});
 
 	async function handleNewGame(d: Difficulty, size: GridSize) {

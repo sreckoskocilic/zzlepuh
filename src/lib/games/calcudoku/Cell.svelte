@@ -23,9 +23,7 @@
 		onclick: () => void;
 	} = $props();
 
-	let noteCols = $derived(Math.ceil(Math.sqrt(puzzleSize)));
-	let noteRows = $derived(Math.ceil(puzzleSize / noteCols));
-	let labelFontPx = $derived(Math.max(8, Math.round(cellSize * 0.18)));
+	let labelFontPx = $derived(Math.max(8, Math.round(cellSize * 0.20)));
 	let numFontPx = $derived(Math.max(14, Math.round(cellSize * 0.45)));
 	let noteFontPx = $derived(Math.max(7, Math.round(cellSize * 0.2)));
 </script>
@@ -44,16 +42,9 @@
 	{#if value > 0}
 		<span class="number" style:font-size="{numFontPx}px">{value}</span>
 	{:else if notes.length > 0}
-		<div
-			class="notes-grid"
-			style:grid-template-columns="repeat({noteCols}, 1fr)"
-			style:grid-template-rows="repeat({noteRows}, 1fr)"
-			style:font-size="{noteFontPx}px"
-		>
-			{#each Array(puzzleSize) as _, i (i)}
-				<span class="note" class:visible={notes.includes(i + 1)}>{i + 1}</span>
-			{/each}
-		</div>
+		<span class="notes-inline" style:font-size="{noteFontPx}px">
+			{notes.toSorted((a, b) => a - b).join(' ')}
+		</span>
 	{/if}
 </button>
 
@@ -103,40 +94,28 @@
 		position: absolute;
 		top: 1px;
 		left: 2px;
-		font-weight: 600;
+		font-weight: 550;
 		line-height: 1;
-		color: var(--label-color, #777);
+		color: #C0432E;
 		pointer-events: none;
 		z-index: 1;
 	}
 
 	.number {
-		font-weight: 600;
-		line-height: 1;
-		color: var(--num-color, #1a1c1a);
-	}
-
-	.notes-grid {
-		display: grid;
-		position: absolute;
-		right: 1px;
-		bottom: 1px;
-		left: 1px;
-		top: 30%;
-		gap: 0;
-		pointer-events: none;
-	}
-
-	.note {
-		display: flex;
-		align-items: center;
-		justify-content: center;
 		font-weight: 500;
 		line-height: 1;
-		color: transparent;
+		color: #50624D;
 	}
 
-	.note.visible {
-		color: var(--note-color, #7a9a8a);
+	.notes-inline {
+		position: absolute;
+		right: 3px;
+		bottom: 2px;
+		font-weight: 500;
+		line-height: 1;
+		color: #4C4DA4;
+		pointer-events: none;
+		white-space: nowrap;
+		letter-spacing: 0.5px;
 	}
 </style>
