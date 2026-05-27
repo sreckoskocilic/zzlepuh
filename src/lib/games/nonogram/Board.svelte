@@ -7,6 +7,8 @@
 		grid,
 		onCellClick,
 		onCellRightClick,
+		onRowClueFill,
+		onColClueFill,
 		hasError,
 		cellSize = 28
 	}: {
@@ -14,6 +16,8 @@
 		grid: CellState[][];
 		onCellClick: (row: number, col: number) => void;
 		onCellRightClick?: (row: number, col: number) => void;
+		onRowClueFill?: (row: number) => void;
+		onColClueFill?: (col: number) => void;
 		hasError: (row: number, col: number) => boolean;
 		cellSize?: number;
 	} = $props();
@@ -105,11 +109,14 @@
 				{@const gc = j - maxRowClueLen}
 				{@const clue = puzzle.col_clues[gc]}
 				{@const offset = maxColClueLen - clue.length}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
-					class="bc clue"
+					class="bc clue clickable"
 					class:satisfied={isColSatisfied(gc)}
 					class:tr={thickR(i, j)}
 					class:tb={thickB(i, j)}
+					onclick={() => onColClueFill?.(gc)}
 				>
 					{#if i >= offset}
 						<span class="cn">{clue[i - offset]}</span>
@@ -119,11 +126,14 @@
 				{@const gr = i - maxColClueLen}
 				{@const clue = puzzle.row_clues[gr]}
 				{@const offset = maxRowClueLen - clue.length}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
-					class="bc clue"
+					class="bc clue clickable"
 					class:satisfied={isRowSatisfied(gr)}
 					class:tr={thickR(i, j)}
 					class:tb={thickB(i, j)}
+					onclick={() => onRowClueFill?.(gr)}
 				>
 					{#if j >= offset}
 						<span class="cn">{clue[j - offset]}</span>
@@ -183,6 +193,14 @@
 
 	.clue.satisfied {
 		color: var(--color-accent);
+	}
+
+	.clue.clickable {
+		cursor: pointer;
+	}
+
+	.clue.clickable:hover {
+		background: color-mix(in srgb, var(--color-accent) 15%, var(--color-accent-dim));
 	}
 
 	.clue.tr, .corner.tr {

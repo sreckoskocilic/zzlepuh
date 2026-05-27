@@ -169,6 +169,36 @@ class NonogramState {
 		this.history.push(move);
 	}
 
+	markRemainingInRow(row: number): void {
+		if (!this.puzzle || this.isComplete) return;
+		const changes: CellChange[] = [];
+		for (let c = 0; c < this.puzzle.cols; c++) {
+			if (this.grid[row][c] === 'empty') {
+				changes.push({ row, col: c, prev: 'empty', next: 'marked' });
+				this.grid[row][c] = 'marked';
+			}
+		}
+		if (changes.length === 0) return;
+		this.history.push({ changes });
+		this.redoStack = [];
+		this.checkWin();
+	}
+
+	markRemainingInCol(col: number): void {
+		if (!this.puzzle || this.isComplete) return;
+		const changes: CellChange[] = [];
+		for (let r = 0; r < this.puzzle.rows; r++) {
+			if (this.grid[r][col] === 'empty') {
+				changes.push({ row: r, col, prev: 'empty', next: 'marked' });
+				this.grid[r][col] = 'marked';
+			}
+		}
+		if (changes.length === 0) return;
+		this.history.push({ changes });
+		this.redoStack = [];
+		this.checkWin();
+	}
+
 	reset(): void {
 		if (!this.puzzle) return;
 		this.grid = Array.from({ length: this.puzzle.rows }, () =>

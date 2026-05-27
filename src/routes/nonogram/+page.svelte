@@ -158,6 +158,8 @@
 					grid={nonogramState.grid}
 					onCellClick={handleCellClick}
 					onCellRightClick={handleCellRightClick}
+					onRowClueFill={(r) => nonogramState.markRemainingInRow(r)}
+					onColClueFill={(c) => nonogramState.markRemainingInCol(c)}
 					hasError={(r, c) => nonogramState.hasError(r, c)}
 					{cellSize}
 				/>
