@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { bimaruState } from '$lib/games/bimaru/state.svelte';
 	import Board from '$lib/games/bimaru/Board.svelte';
 	import Fleet from '$lib/games/bimaru/Fleet.svelte';
@@ -12,12 +12,13 @@
 	import type { Difficulty } from '$lib/types/game';
 	import type { GridSize } from '$lib/games/bimaru/Controls.svelte';
 
-	timer.reset();
+	onMount(() => timer.reset());
 	onDestroy(() => timer.pause());
 
 	let difficulty: Difficulty = $state('medium');
 	let gridSize: GridSize = $state(10);
-	let winRecordedForGameId = -1;
+	let winRecordedForGameId = $state(-1);
+	let winTimeout: ReturnType<typeof setTimeout> | null = null;
 	let showLeaderboard = $state(false);
 	let lastRank: number | null = $state(null);
 	let areaWidth = $state(0);
@@ -35,6 +36,8 @@
 	});
 
 	async function handleNewGame(d: Difficulty, size: GridSize) {
+		if (bimaruState.isGenerating) return;
+		if (winTimeout) { clearTimeout(winTimeout); winTimeout = null; }
 		if (bimaruState.isActive) {
 			statsStore.recordLoss('bimaru');
 		}
@@ -95,7 +98,8 @@
 			const gameSize = gridSize;
 			const ms = timer.elapsedMs;
 			const hints = bimaruState.hintsUsed;
-			setTimeout(async () => {
+			winTimeout = setTimeout(async () => {
+				winTimeout = null;
 				await statsStore.recordWin('bimaru', gameDifficulty, ms, hints);
 				const rank = await leaderboardStore.addEntry('bimaru', gameDifficulty, gameSize, ms, hints);
 				lastRank = rank;

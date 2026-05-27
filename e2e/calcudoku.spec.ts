@@ -184,7 +184,7 @@ test.describe('Calcudoku', () => {
 		await calc.page.keyboard.press('3');
 
 		const cell = calc.cell(0, 0);
-		await expect(cell.locator('.note.visible')).toHaveCount(2);
+		await expect(cell.locator('.notes-inline')).toHaveText('1 3');
 	});
 
 	test('shift+number enters note without notes mode', async () => {
@@ -195,7 +195,7 @@ test.describe('Calcudoku', () => {
 		await calc.page.keyboard.press('Shift+2');
 
 		const cell = calc.cell(0, 0);
-		await expect(cell.locator('.note.visible')).toHaveCount(1);
+		await expect(cell.locator('.notes-inline')).toHaveText('2');
 	});
 
 	test('number pad buttons disabled when no cell selected', async () => {

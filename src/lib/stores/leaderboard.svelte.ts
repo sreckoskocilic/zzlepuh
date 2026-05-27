@@ -6,6 +6,7 @@ const MAX_ENTRIES = 10;
 class LeaderboardStore {
 	private boards = $state<Record<string, LeaderboardEntry[]>>({});
 	private pending = new Map<string, Promise<LeaderboardEntry[]>>();
+	private writeQueue = new Map<string, Promise<unknown>>();
 
 	private key(gameId: string, difficulty: Difficulty, gridSize: number): string {
 		return `leaderboard:${gameId}:${difficulty}:${gridSize}`;
@@ -33,27 +34,32 @@ class LeaderboardStore {
 		hintsUsed: number
 	): Promise<number | null> {
 		const k = this.key(gameId, difficulty, gridSize);
-		const entries = await this.load(gameId, difficulty, gridSize);
+		const prev = this.writeQueue.get(k) ?? Promise.resolve();
+		const next = prev.then(async () => {
+			const entries = this.boards[k] ?? await this.load(gameId, difficulty, gridSize);
 
-		const entry: LeaderboardEntry = {
-			timeMs,
-			hintsUsed,
-			date: new Date().toISOString()
-		};
+			const entry: LeaderboardEntry = {
+				timeMs,
+				hintsUsed,
+				date: new Date().toISOString()
+			};
 
-		const insertIdx = entries.findIndex(e => timeMs < e.timeMs);
-		const idx = insertIdx === -1 ? entries.length : insertIdx;
+			const insertIdx = entries.findIndex(e => timeMs < e.timeMs);
+			const idx = insertIdx === -1 ? entries.length : insertIdx;
 
-		if (idx >= MAX_ENTRIES) return null;
+			if (idx >= MAX_ENTRIES) return null;
 
-		const updated = [...entries];
-		updated.splice(idx, 0, entry);
-		if (updated.length > MAX_ENTRIES) updated.length = MAX_ENTRIES;
+			const updated = [...entries];
+			updated.splice(idx, 0, entry);
+			if (updated.length > MAX_ENTRIES) updated.length = MAX_ENTRIES;
 
-		this.boards[k] = updated;
-		await setData(k, updated);
+			this.boards[k] = updated;
+			await setData(k, updated);
 
-		return idx;
+			return idx;
+		}, () => null);
+		this.writeQueue.set(k, next);
+		return next;
 	}
 
 	getEntries(gameId: string, difficulty: Difficulty, gridSize: number): LeaderboardEntry[] {

@@ -76,7 +76,6 @@
 					value={grid[r][c]}
 					label={cageLabels.get(`${r},${c}`) ?? ''}
 					notes={notes[r]?.[c] ?? []}
-					puzzleSize={puzzle.size}
 					{cellSize}
 					row={r}
 					col={c}

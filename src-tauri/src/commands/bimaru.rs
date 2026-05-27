@@ -133,48 +133,52 @@ pub fn get_bimaru_hint(
 }
 
 #[tauri::command]
-pub fn check_bimaru_errors(
+pub async fn check_bimaru_errors(
     player_grid: Vec<Vec<CellValue>>,
     row_clues: Vec<usize>,
     col_clues: Vec<usize>,
     fleet: Fleet,
     hints: Vec<Vec<HintCell>>,
-) -> Vec<(usize, usize)> {
+) -> Result<Vec<(usize, usize)>, String> {
     let rows = player_grid.len();
     if rows == 0 {
-        return vec![];
+        return Ok(vec![]);
     }
     let cols = player_grid[0].len();
     if player_grid.iter().any(|row| row.len() != cols) {
-        return vec![];
+        return Ok(vec![]);
     }
     if row_clues.len() != rows || col_clues.len() != cols {
-        return vec![];
+        return Ok(vec![]);
     }
     if hints.len() != rows || hints.iter().any(|r| r.len() != cols) {
-        return vec![];
+        return Ok(vec![]);
     }
     let fleet_cells: usize = fleet.ships.iter().map(|s| s.length * s.count).sum();
     if fleet_cells > rows * cols {
-        return vec![];
+        return Ok(vec![]);
     }
 
-    let Some(solution) = solver::solve(&row_clues, &col_clues, &hints, &fleet, rows, cols) else {
-        return vec![];
-    };
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(solution) = solver::solve(&row_clues, &col_clues, &hints, &fleet, rows, cols) else {
+            return vec![];
+        };
 
-    let mut errors = Vec::new();
-    for r in 0..rows {
-        for c in 0..cols {
-            if player_grid[r][c] == CellValue::Empty {
-                continue;
-            }
-            if player_grid[r][c] != solution[r][c] {
-                errors.push((r, c));
+        let mut errors = Vec::new();
+        for r in 0..rows {
+            for c in 0..cols {
+                if player_grid[r][c] == CellValue::Empty {
+                    continue;
+                }
+                if player_grid[r][c] != solution[r][c] {
+                    errors.push((r, c));
+                }
             }
         }
-    }
-    errors
+        errors
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))
 }
 
 #[cfg(test)]
@@ -284,15 +288,15 @@ mod tests {
         assert!(result.is_none());
     }
 
-    #[test]
-    fn test_check_errors_correct_solution() {
+    #[tokio::test]
+    async fn test_check_errors_correct_solution() {
         let (solution, row_clues, col_clues, fleet, hints) = make_test_puzzle();
-        let errors = check_bimaru_errors(solution, row_clues, col_clues, fleet, hints);
+        let errors = check_bimaru_errors(solution, row_clues, col_clues, fleet, hints).await.unwrap();
         assert!(errors.is_empty());
     }
 
-    #[test]
-    fn test_check_errors_wrong_cell() {
+    #[tokio::test]
+    async fn test_check_errors_wrong_cell() {
         let (mut solution, row_clues, col_clues, fleet, hints) = make_test_puzzle();
         let mut flipped = None;
         for r in 0..10 {
@@ -305,15 +309,15 @@ mod tests {
             }
             if flipped.is_some() { break; }
         }
-        let errors = check_bimaru_errors(solution, row_clues, col_clues, fleet, hints);
+        let errors = check_bimaru_errors(solution, row_clues, col_clues, fleet, hints).await.unwrap();
         assert!(!errors.is_empty());
         assert!(errors.contains(&flipped.unwrap()));
     }
 
-    #[test]
-    fn test_check_errors_empty_grid() {
+    #[tokio::test]
+    async fn test_check_errors_empty_grid() {
         let grid: Vec<Vec<CellValue>> = vec![];
-        let errors = check_bimaru_errors(grid, vec![], vec![], Fleet::standard(), vec![]);
+        let errors = check_bimaru_errors(grid, vec![], vec![], Fleet::standard(), vec![]).await.unwrap();
         assert!(errors.is_empty());
     }
 }

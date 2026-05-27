@@ -118,7 +118,8 @@ pub fn has_unique_solution(
     rows: usize,
     cols: usize,
 ) -> bool {
-    count_solutions_up_to(row_clues, col_clues, rows, cols, 2) == 1
+    let deadline = Instant::now() + Duration::from_secs(5);
+    count_solutions_up_to(row_clues, col_clues, rows, cols, 2, deadline) == 1
 }
 
 fn count_solutions_up_to(
@@ -127,6 +128,7 @@ fn count_solutions_up_to(
     rows: usize,
     cols: usize,
     limit: usize,
+    deadline: Instant,
 ) -> usize {
     let mut grid = vec![vec![Cell::Unknown; cols]; rows];
     if !propagate(&mut grid, row_clues, col_clues, rows, cols) {
@@ -136,7 +138,7 @@ fn count_solutions_up_to(
         return 1;
     }
     let mut count = 0;
-    count_backtrack(&grid, row_clues, col_clues, rows, cols, &mut count, limit);
+    count_backtrack(&grid, row_clues, col_clues, rows, cols, &mut count, limit, deadline);
     count
 }
 
@@ -148,8 +150,9 @@ fn count_backtrack(
     cols: usize,
     count: &mut usize,
     limit: usize,
+    deadline: Instant,
 ) {
-    if *count >= limit {
+    if *count >= limit || Instant::now() >= deadline {
         return;
     }
 
@@ -168,7 +171,7 @@ fn count_backtrack(
                     return;
                 }
             } else {
-                count_backtrack(&g, row_clues, col_clues, rows, cols, count, limit);
+                count_backtrack(&g, row_clues, col_clues, rows, cols, count, limit, deadline);
             }
         }
     }

@@ -3,7 +3,6 @@
 		value,
 		label,
 		notes = [],
-		puzzleSize = 6,
 		cellSize = 48,
 		row,
 		col,
@@ -14,7 +13,6 @@
 		value: number;
 		label: string;
 		notes?: number[];
-		puzzleSize?: number;
 		cellSize?: number;
 		row: number;
 		col: number;

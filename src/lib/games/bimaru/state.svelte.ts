@@ -33,11 +33,11 @@ class BimaruState {
 	}
 
 	get canUndo(): boolean {
-		return this.history.length > 0 && !this.isComplete;
+		return this.history.length > 0;
 	}
 
 	get canRedo(): boolean {
-		return this.redoStack.length > 0 && !this.isComplete;
+		return this.redoStack.length > 0;
 	}
 
 	async startNewGame(difficulty: Difficulty, rows?: number, cols?: number): Promise<void> {
@@ -115,10 +115,14 @@ class BimaruState {
 
 			if (!hint || this.gameId !== capturedGameId) return false;
 
+			const changes: CellChange[] = [];
+			changes.push({ row: hint.row, col: hint.col, prev: this.grid[hint.row][hint.col], next: hint.value });
 			this.grid[hint.row][hint.col] = hint.value;
 			if (hint.value === 'ship') {
-				this.autoWaterDiagonalsNoTrack(hint.row, hint.col);
+				this.autoWaterDiagonals(hint.row, hint.col, changes);
 			}
+			this.history.push({ changes });
+			this.redoStack = [];
 			this.hintsUsed++;
 			this.checkWin();
 			return true;
@@ -161,17 +165,18 @@ class BimaruState {
 	}
 
 	undo(): void {
-		if (!this.history.length || !this.puzzle || this.isComplete) return;
+		if (!this.history.length || !this.puzzle) return;
 		const move = this.history.pop()!;
 		for (let i = move.changes.length - 1; i >= 0; i--) {
 			const { row, col, prev } = move.changes[i];
 			this.grid[row][col] = prev;
 		}
 		this.redoStack.push(move);
+		if (this.isComplete) this.isComplete = false;
 	}
 
 	redo(): void {
-		if (!this.redoStack.length || !this.puzzle || this.isComplete) return;
+		if (!this.redoStack.length || !this.puzzle) return;
 		const move = this.redoStack.pop()!;
 		for (const { row, col, next } of move.changes) {
 			this.grid[row][col] = next;

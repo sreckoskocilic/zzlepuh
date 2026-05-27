@@ -57,6 +57,11 @@ fn solve_internal(
 }
 
 pub fn has_unique_solution(puzzle: &CalcudokuPuzzle) -> bool {
+    has_unique_solution_timed(puzzle, Duration::from_secs(5))
+}
+
+pub fn has_unique_solution_timed(puzzle: &CalcudokuPuzzle, timeout: Duration) -> bool {
+    let deadline = Instant::now() + timeout;
     let n = puzzle.size;
     let mut domains = initial_domains(n);
 
@@ -69,7 +74,7 @@ pub fn has_unique_solution(puzzle: &CalcudokuPuzzle) -> bool {
     }
 
     let mut count = 0;
-    count_backtrack(&domains, puzzle, &mut count, 2);
+    count_backtrack(&domains, puzzle, &mut count, 2, deadline);
     count == 1
 }
 
@@ -83,8 +88,9 @@ fn count_backtrack(
     puzzle: &CalcudokuPuzzle,
     count: &mut usize,
     limit: usize,
+    deadline: Instant,
 ) {
-    if *count >= limit {
+    if *count >= limit || Instant::now() >= deadline {
         return;
     }
 
@@ -103,7 +109,7 @@ fn count_backtrack(
                     return;
                 }
             } else {
-                count_backtrack(&d, puzzle, count, limit);
+                count_backtrack(&d, puzzle, count, limit, deadline);
             }
         }
     }

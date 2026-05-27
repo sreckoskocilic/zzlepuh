@@ -38,11 +38,11 @@ class NonogramState {
 	}
 
 	get canUndo(): boolean {
-		return this.history.length > 0 && !this.isComplete;
+		return this.history.length > 0;
 	}
 
 	get canRedo(): boolean {
-		return this.redoStack.length > 0 && !this.isComplete;
+		return this.redoStack.length > 0;
 	}
 
 	async startNewGame(difficulty: Difficulty, rows?: number, cols?: number): Promise<void> {
@@ -91,7 +91,9 @@ class NonogramState {
 		this.history.push({ changes: [{ row, col, prev: current, next }] });
 		this.grid[row][col] = next;
 		this.redoStack = [];
-		this.checkWin();
+		if (this.grid.some((row) => row.some((c) => c === 'filled'))) {
+			this.checkWin();
+		}
 	}
 
 	async requestHint(): Promise<boolean> {
@@ -107,7 +109,11 @@ class NonogramState {
 
 			if (!hint || this.gameId !== capturedGameId) return false;
 
-			this.grid[hint.row][hint.col] = hint.filled ? 'filled' : 'marked';
+			const prev = this.grid[hint.row][hint.col];
+			const next: CellState = hint.filled ? 'filled' : 'marked';
+			this.history.push({ changes: [{ row: hint.row, col: hint.col, prev, next }] });
+			this.grid[hint.row][hint.col] = next;
+			this.redoStack = [];
 			this.hintsUsed++;
 			this.checkWin();
 			return true;
@@ -144,17 +150,18 @@ class NonogramState {
 	}
 
 	undo(): void {
-		if (!this.history.length || !this.puzzle || this.isComplete) return;
+		if (!this.history.length || !this.puzzle) return;
 		const move = this.history.pop()!;
 		for (let i = move.changes.length - 1; i >= 0; i--) {
 			const { row, col, prev } = move.changes[i];
 			this.grid[row][col] = prev;
 		}
 		this.redoStack.push(move);
+		if (this.isComplete) this.isComplete = false;
 	}
 
 	redo(): void {
-		if (!this.redoStack.length || !this.puzzle || this.isComplete) return;
+		if (!this.redoStack.length || !this.puzzle) return;
 		const move = this.redoStack.pop()!;
 		for (const { row, col, next } of move.changes) {
 			this.grid[row][col] = next;

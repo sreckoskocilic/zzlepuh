@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { calcudokuState } from '$lib/games/calcudoku/state.svelte';
 	import Board from '$lib/games/calcudoku/Board.svelte';
 	import Controls from '$lib/games/calcudoku/Controls.svelte';
@@ -11,12 +11,13 @@
 	import type { Difficulty } from '$lib/types/game';
 	import type { GridSize } from '$lib/games/calcudoku/Controls.svelte';
 
-	timer.reset();
+	onMount(() => timer.reset());
 	onDestroy(() => timer.pause());
 
 	let difficulty: Difficulty = $state('medium');
 	let gridSize: GridSize = $state(6);
-	let winRecordedForGameId = -1;
+	let winRecordedForGameId = $state(-1);
+	let winTimeout: ReturnType<typeof setTimeout> | null = null;
 	let showLeaderboard = $state(false);
 	let lastRank: number | null = $state(null);
 	let areaWidth = $state(0);
@@ -31,6 +32,8 @@
 	});
 
 	async function handleNewGame(d: Difficulty, size: GridSize) {
+		if (calcudokuState.isGenerating) return;
+		if (winTimeout) { clearTimeout(winTimeout); winTimeout = null; }
 		if (calcudokuState.isActive) {
 			statsStore.recordLoss('calcudoku');
 		}
@@ -113,7 +116,8 @@
 			const gameSize = gridSize;
 			const ms = timer.elapsedMs;
 			const hints = calcudokuState.hintsUsed;
-			setTimeout(async () => {
+			winTimeout = setTimeout(async () => {
+				winTimeout = null;
 				await statsStore.recordWin('calcudoku', gameDifficulty, ms, hints);
 				const rank = await leaderboardStore.addEntry(
 					'calcudoku',

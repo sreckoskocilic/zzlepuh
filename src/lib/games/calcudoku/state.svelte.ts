@@ -51,11 +51,11 @@ class CalcudokuState {
 	}
 
 	get canUndo(): boolean {
-		return this.history.length > 0 && !this.isComplete;
+		return this.history.length > 0;
 	}
 
 	get canRedo(): boolean {
-		return this.redoStack.length > 0 && !this.isComplete;
+		return this.redoStack.length > 0;
 	}
 
 	async startNewGame(difficulty: Difficulty, size?: number): Promise<void> {
@@ -106,6 +106,7 @@ class CalcudokuState {
 		const isNote = asNote ?? this.notesMode;
 
 		if (isNote) {
+			if (this.grid[row][col] !== 0) return;
 			const prevValue = this.grid[row][col];
 			const prevNotes = [...this.notes[row][col]];
 			const current = [...prevNotes];
@@ -213,7 +214,7 @@ class CalcudokuState {
 	}
 
 	undo(): void {
-		if (!this.history.length || !this.puzzle || this.isComplete) return;
+		if (!this.history.length || !this.puzzle) return;
 		const move = this.history.pop()!;
 		for (let i = move.changes.length - 1; i >= 0; i--) {
 			const { row, col, prevValue, prevNotes } = move.changes[i];
@@ -221,10 +222,11 @@ class CalcudokuState {
 			this.notes[row][col] = [...prevNotes];
 		}
 		this.redoStack.push(move);
+		if (this.isComplete) this.isComplete = false;
 	}
 
 	redo(): void {
-		if (!this.redoStack.length || !this.puzzle || this.isComplete) return;
+		if (!this.redoStack.length || !this.puzzle) return;
 		const move = this.redoStack.pop()!;
 		for (const { row, col, nextValue, nextNotes } of move.changes) {
 			this.grid[row][col] = nextValue;

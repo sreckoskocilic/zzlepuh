@@ -14,7 +14,7 @@ pub fn get_hint(
 ) -> Option<NonogramHint> {
     let solution = solver::solve_with_partial_timed(
         row_clues, col_clues, rows, cols, Some(&player_grid.to_vec()), SOLVE_TIMEOUT,
-    ).or_else(|| solver::solve_timed(row_clues, col_clues, rows, cols, SOLVE_TIMEOUT))?;
+    )?;
 
     for r in 0..rows {
         for c in 0..cols {
