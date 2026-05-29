@@ -10,7 +10,6 @@ pub fn get_hint(
     rows: usize,
     cols: usize,
 ) -> Option<BimaruHint> {
-    // Try constraint propagation first
     if let Some((r, c, value, reason)) =
         solver::find_deduction(row_clues, col_clues, player_grid, hints, rows, cols)
     {
@@ -22,9 +21,7 @@ pub fn get_hint(
         });
     }
 
-    // Fallback: solve and reveal a cell from the solution
     if let Some(solution) = solver::solve(row_clues, col_clues, hints, fleet, rows, cols) {
-        // Find first cell where player hasn't placed correctly
         for r in 0..rows {
             for c in 0..cols {
                 if player_grid[r][c] != solution[r][c] {
@@ -54,7 +51,6 @@ mod tests {
         let sol = generator::generate(10, 10, "easy", &fleet)
             .expect("Should generate an easy puzzle");
 
-        // Fresh grid with only hints placed
         let mut player_grid = vec![vec![CellValue::Empty; 10]; 10];
         for r in 0..10 {
             for c in 0..10 {

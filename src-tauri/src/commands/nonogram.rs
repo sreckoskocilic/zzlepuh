@@ -37,10 +37,7 @@ pub fn validate_nonogram_solution(
         return false;
     }
 
-    if player_grid.iter().any(|row| row.iter().any(|c| *c == CellState::Empty)) {
-        return false;
-    }
-
+    // Blanks count the same whether empty or X-marked; only Filled runs are matched against the clues.
     for (r, clue) in row_clues.iter().enumerate() {
         let line: Vec<bool> = player_grid[r].iter().map(|c| *c == CellState::Filled).collect();
         if &clues_from_line(&line) != clue {
@@ -155,10 +152,21 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_has_empty_cells() {
+    fn test_validate_blanks_left_empty() {
+        let (solution, row_clues, col_clues) = make_test_puzzle();
+        let player: Vec<Vec<CellState>> = solution.iter()
+            .map(|row| row.iter().map(|&b| {
+                if b { CellState::Filled } else { CellState::Empty }
+            }).collect())
+            .collect();
+        assert!(validate_nonogram_solution(player, row_clues, col_clues));
+    }
+
+    #[test]
+    fn test_validate_incomplete_is_invalid() {
+        let (_, row_clues, col_clues) = make_test_puzzle();
         let grid = vec![vec![CellState::Empty; 5]; 5];
-        let clues = vec![vec![0]; 5];
-        assert!(!validate_nonogram_solution(grid, clues.clone(), clues));
+        assert!(!validate_nonogram_solution(grid, row_clues, col_clues));
     }
 
     #[test]

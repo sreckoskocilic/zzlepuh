@@ -98,11 +98,12 @@
 			const gameSize = gridSize;
 			const ms = timer.elapsedMs;
 			const hints = bimaruState.hintsUsed;
+			const recordedGameId = bimaruState.currentGameId;
 			winTimeout = setTimeout(async () => {
 				winTimeout = null;
 				await statsStore.recordWin('bimaru', gameDifficulty, ms, hints);
 				const rank = await leaderboardStore.addEntry('bimaru', gameDifficulty, gameSize, ms, hints);
-				lastRank = rank;
+				if (recordedGameId === bimaruState.currentGameId) lastRank = rank;
 			}, 0);
 		}
 	});

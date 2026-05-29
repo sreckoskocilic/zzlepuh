@@ -213,8 +213,19 @@ class NonogramState {
 	private checkWin(): void {
 		if (!this.puzzle || this.isValidating) return;
 
-		const hasEmpty = this.grid.some((row) => row.some((cell) => cell === 'empty'));
-		if (hasEmpty) return;
+		// Wait until the filled count matches the clues before validating, so we
+		// don't fire an invoke on every click. Blanks may stay empty or be X-marked.
+		const expectedFilled = this.puzzle.row_clues.reduce(
+			(sum, clue) => sum + clue.reduce((a, b) => a + b, 0),
+			0
+		);
+		let filledCount = 0;
+		for (const row of this.grid) {
+			for (const cell of row) {
+				if (cell === 'filled') filledCount++;
+			}
+		}
+		if (filledCount !== expectedFilled) return;
 
 		this.isValidating = true;
 		const currentGameId = this.gameId;

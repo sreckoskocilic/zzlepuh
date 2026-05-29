@@ -16,6 +16,8 @@ class TimerState {
 
 	pause(): void {
 		if (!this.isRunning) return;
+		// Read the clock directly; the interval's last sample can be up to 100ms behind.
+		this.elapsedMs = Date.now() - this.startTime + this.pausedMs;
 		this.pausedMs = this.elapsedMs;
 		this.isRunning = false;
 		if (this.intervalId) {

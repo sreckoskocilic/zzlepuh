@@ -116,6 +116,7 @@
 			const gameSize = gridSize;
 			const ms = timer.elapsedMs;
 			const hints = calcudokuState.hintsUsed;
+			const recordedGameId = calcudokuState.currentGameId;
 			winTimeout = setTimeout(async () => {
 				winTimeout = null;
 				await statsStore.recordWin('calcudoku', gameDifficulty, ms, hints);
@@ -126,7 +127,7 @@
 					ms,
 					hints
 				);
-				lastRank = rank;
+				if (recordedGameId === calcudokuState.currentGameId) lastRank = rank;
 			}, 0);
 		}
 	});

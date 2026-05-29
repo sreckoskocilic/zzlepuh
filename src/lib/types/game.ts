@@ -47,3 +47,18 @@ export function emptyGameStats(): GameStats {
 		}
 	};
 }
+
+// Stats saved by an older version can be missing keys this one expects (say a new
+// difficulty), and reading those would crash. Fill any gaps from the empty shape.
+export function mergeGameStats(saved: unknown): GameStats {
+	const base = emptyGameStats();
+	if (!saved || typeof saved !== 'object') return base;
+	const s = saved as Partial<GameStats>;
+	const merged: GameStats = { ...base, ...s };
+	merged.bestTimeMs = { ...base.bestTimeMs, ...(s.bestTimeMs ?? {}) };
+	merged.byDifficulty = {} as GameStats['byDifficulty'];
+	for (const k of Object.keys(base.byDifficulty) as Difficulty[]) {
+		merged.byDifficulty[k] = { ...base.byDifficulty[k], ...(s.byDifficulty?.[k] ?? {}) };
+	}
+	return merged;
+}

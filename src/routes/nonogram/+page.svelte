@@ -90,11 +90,12 @@
 			const gameSize = gridSize;
 			const ms = timer.elapsedMs;
 			const hints = nonogramState.hintsUsed;
+			const recordedGameId = nonogramState.currentGameId;
 			winTimeout = setTimeout(async () => {
 				winTimeout = null;
 				await statsStore.recordWin('nonogram', gameDifficulty, ms, hints);
 				const rank = await leaderboardStore.addEntry('nonogram', gameDifficulty, gameSize, ms, hints);
-				lastRank = rank;
+				if (recordedGameId === nonogramState.currentGameId) lastRank = rank;
 			}, 0);
 		}
 	});

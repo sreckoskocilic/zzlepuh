@@ -48,8 +48,8 @@
 							? '−'
 							: cage.operation === 'multiply'
 								? '×'
-								: '÷';
-			labels.set(`${r},${c}`, `${cage.target}${opSymbol}`);
+								: '/';
+			labels.set(`${r},${c}`, opSymbol ? `${cage.target} ${opSymbol}` : `${cage.target}`);
 		}
 		return labels;
 	});

@@ -5,7 +5,7 @@
 
 	let { children } = $props();
 
-	themeStore.init();
+	void themeStore.init();
 </script>
 
 <div class="app-shell">

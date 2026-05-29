@@ -42,7 +42,6 @@ pub fn validate_bimaru_solution(
         return false;
     }
 
-    // Check row clues
     for r in 0..rows {
         let count = (0..cols)
             .filter(|&c| player_grid[r][c] == CellValue::Ship)
@@ -52,7 +51,6 @@ pub fn validate_bimaru_solution(
         }
     }
 
-    // Check col clues
     for c in 0..cols {
         let count = (0..rows)
             .filter(|&r| player_grid[r][c] == CellValue::Ship)
@@ -62,7 +60,6 @@ pub fn validate_bimaru_solution(
         }
     }
 
-    // Check no diagonal adjacency
     for r in 0..rows {
         for c in 0..cols {
             if player_grid[r][c] != CellValue::Ship {
@@ -80,7 +77,6 @@ pub fn validate_bimaru_solution(
         }
     }
 
-    // Check fleet matches
     let found = extract_ship_lengths(&player_grid, rows, cols);
     let mut expected: Vec<usize> = fleet
         .ships

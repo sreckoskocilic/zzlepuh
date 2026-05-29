@@ -97,7 +97,6 @@ fn generate_large(rows: usize, cols: usize, difficulty: &str) -> Option<Nonogram
             let (fr, fc) = pick_flip_cell(rows, cols, &mut rng);
             grid[fr][fc] = !grid[fr][fc];
 
-            // Only update affected row and column clues
             row_clues[fr] = clues_from_line(&grid[fr]);
             let col_line: Vec<bool> = (0..rows).map(|r| grid[r][fc]).collect();
             col_clues[fc] = clues_from_line(&col_line);
@@ -105,7 +104,7 @@ fn generate_large(rows: usize, cols: usize, difficulty: &str) -> Option<Nonogram
             let (ok, determined) = solver::propagation_progress(&row_clues, &col_clues, rows, cols);
 
             if !ok || determined < best {
-                // Undo: flip back and restore clues
+                // Undo the flip
                 grid[fr][fc] = !grid[fr][fc];
                 row_clues[fr] = clues_from_line(&grid[fr]);
                 let col_line: Vec<bool> = (0..rows).map(|r| grid[r][fc]).collect();

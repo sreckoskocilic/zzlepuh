@@ -23,7 +23,6 @@ pub fn generate(
         let row_clues = compute_row_clues(&solution_grid, rows, cols);
         let col_clues = compute_col_clues(&solution_grid, rows, cols);
 
-        // Start with many hints, then strip down to target
         let initial_hints = select_hints(&solution_grid, rows, cols, "easy", &mut rng);
 
         let count = solver::count_solutions_timed(

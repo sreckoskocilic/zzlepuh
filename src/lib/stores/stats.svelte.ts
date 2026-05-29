@@ -1,5 +1,5 @@
 import type { Difficulty, GameStats } from '$lib/types/game';
-import { emptyGameStats } from '$lib/types/game';
+import { emptyGameStats, mergeGameStats } from '$lib/types/game';
 import { getData, setData } from '$lib/services/persistence';
 
 class StatsStore {
@@ -11,7 +11,7 @@ class StatsStore {
 		if (this.stats[gameId]) return this.stats[gameId];
 		if (!this.pending.has(gameId)) {
 			this.pending.set(gameId, getData<GameStats>(`stats:${gameId}`).then(saved => {
-				const s = saved ?? emptyGameStats();
+				const s = mergeGameStats(saved);
 				this.stats[gameId] = s;
 				this.pending.delete(gameId);
 				return s;
