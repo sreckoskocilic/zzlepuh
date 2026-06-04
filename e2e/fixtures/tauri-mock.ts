@@ -272,7 +272,8 @@ export async function injectTauriMock(page: Page, opts: MockOptions & { easy?: b
 								{ cells: [[1,3],[2,3]], operation: 'subtract', target: 1 },
 								{ cells: [[2,0],[3,0]], operation: 'divide', target: 2 },
 								{ cells: [[2,1],[3,1]], operation: 'subtract', target: 2 },
-								{ cells: [[3,2],[3,3]], operation: 'subtract', target: 1 }
+								{ cells: [[3,2]], operation: 'none', target: 2 },
+								{ cells: [[3,3]], operation: 'none', target: 1 }
 							],
 							difficulty: args?.difficulty ?? 'easy'
 						};

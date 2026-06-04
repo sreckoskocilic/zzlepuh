@@ -229,6 +229,42 @@ test.describe('Calcudoku', () => {
 		await expect(calc.statsBar).toContainText('Games:');
 	});
 
+	test('single-cell cages are pre-filled and locked', async () => {
+		await calc.sizeSelect.selectOption('4');
+		await calc.startNewGame();
+
+		// Mock has single cages at (3,2)=2 and (3,3)=1
+		await expect(calc.cell(3, 2)).toContainText('2');
+		await expect(calc.cell(3, 2)).toHaveClass(/locked/);
+		await expect(calc.cell(3, 3)).toContainText('1');
+		await expect(calc.cell(3, 3)).toHaveClass(/locked/);
+	});
+
+	test('locked cell cannot be edited', async () => {
+		await calc.sizeSelect.selectOption('4');
+		await calc.startNewGame();
+
+		await calc.cell(3, 3).click();
+		await calc.page.keyboard.press('5');
+		await expect(calc.cell(3, 3)).toContainText('1');
+
+		await calc.page.keyboard.press('Backspace');
+		await expect(calc.cell(3, 3)).toContainText('1');
+	});
+
+	test('reset keeps single-cell givens', async () => {
+		await calc.sizeSelect.selectOption('4');
+		await calc.startNewGame();
+
+		await calc.cell(0, 0).click();
+		await calc.page.keyboard.press('1');
+
+		await calc.btnReset.click();
+		await expect(calc.cell(0, 0)).not.toContainText('1');
+		await expect(calc.cell(3, 3)).toContainText('1');
+		await expect(calc.cell(3, 3)).toHaveClass(/locked/);
+	});
+
 	test('hint and reset disabled before game, enabled after', async () => {
 		await expect(calc.btnHint).toBeDisabled();
 		await expect(calc.btnReset).toBeDisabled();
@@ -257,7 +293,10 @@ test.describe('Calcudoku Win Flow', () => {
 
 		for (let r = 0; r < 4; r++) {
 			for (let c = 0; c < 4; c++) {
-				await calc.cell(r, c).click();
+				// Single-cell cages (3,2) and (3,3) are pre-filled and locked
+				const cell = calc.cell(r, c);
+				if (((await cell.getAttribute('class')) ?? '').includes('locked')) continue;
+				await cell.click();
 				await page.keyboard.press(String(solution[r][c]));
 			}
 		}

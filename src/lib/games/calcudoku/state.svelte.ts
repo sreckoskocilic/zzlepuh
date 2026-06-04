@@ -37,6 +37,7 @@ class CalcudokuState {
 	isGenerating = $state(false);
 	error = $state<string | null>(null);
 	errorCells = $state<Set<string>>(new Set());
+	locked = $state<Set<string>>(new Set());
 	private gameId = 0;
 	get currentGameId() {
 		return this.gameId;
@@ -48,6 +49,23 @@ class CalcudokuState {
 
 	get isActive(): boolean {
 		return this.puzzle !== null && !this.isComplete;
+	}
+
+	isLocked(row: number, col: number): boolean {
+		return this.locked.has(`${row},${col}`);
+	}
+
+	/** Pre-fill single-cell cages (value is forced = target) into grid; return their keys. */
+	private applySingles(puzzle: CalcudokuPuzzle, grid: number[][]): Set<string> {
+		const locked = new Set<string>();
+		for (const cage of puzzle.cages) {
+			if (cage.cells.length === 1) {
+				const [r, c] = cage.cells[0];
+				grid[r][c] = cage.target;
+				locked.add(`${r},${c}`);
+			}
+		}
+		return locked;
 	}
 
 	get canUndo(): boolean {
@@ -72,9 +90,11 @@ class CalcudokuState {
 		try {
 			const puzzle = await generateCalcudokuPuzzle(difficulty, size);
 			this.puzzle = puzzle;
-			this.grid = Array.from({ length: puzzle.size }, () =>
+			const grid = Array.from({ length: puzzle.size }, () =>
 				Array.from({ length: puzzle.size }, () => 0)
 			);
+			this.locked = this.applySingles(puzzle, grid);
+			this.grid = grid;
 			this.notes = emptyNotes(puzzle.size);
 			this.isComplete = false;
 			this.hintsUsed = 0;
@@ -101,6 +121,7 @@ class CalcudokuState {
 	enterNumber(value: number, asNote?: boolean): void {
 		if (!this.puzzle || this.isComplete || !this.selectedCell) return;
 		const [row, col] = this.selectedCell;
+		if (this.isLocked(row, col)) return;
 		if (value < 1 || value > this.puzzle.size) return;
 
 		const isNote = asNote ?? this.notesMode;
@@ -146,6 +167,7 @@ class CalcudokuState {
 	clearCell(): void {
 		if (!this.puzzle || this.isComplete || !this.selectedCell) return;
 		const [row, col] = this.selectedCell;
+		if (this.isLocked(row, col)) return;
 		const prevValue = this.grid[row][col];
 		const prevNotes = [...this.notes[row][col]];
 		if (prevValue === 0 && prevNotes.length === 0) return;
@@ -237,9 +259,11 @@ class CalcudokuState {
 
 	reset(): void {
 		if (!this.puzzle) return;
-		this.grid = Array.from({ length: this.puzzle.size }, () =>
+		const grid = Array.from({ length: this.puzzle.size }, () =>
 			Array.from({ length: this.puzzle!.size }, () => 0)
 		);
+		this.locked = this.applySingles(this.puzzle, grid);
+		this.grid = grid;
 		this.notes = emptyNotes(this.puzzle.size);
 		this.isComplete = false;
 		this.errorCells = new Set();

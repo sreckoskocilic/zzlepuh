@@ -8,6 +8,7 @@
 		col,
 		isSelected = false,
 		isError = false,
+		isLocked = false,
 		onclick
 	}: {
 		value: number;
@@ -18,6 +19,7 @@
 		col: number;
 		isSelected?: boolean;
 		isError?: boolean;
+		isLocked?: boolean;
 		onclick: () => void;
 	} = $props();
 
@@ -30,6 +32,7 @@
 	class="cell"
 	class:selected={isSelected}
 	class:error={isError}
+	class:locked={isLocked}
 	class:has-value={value > 0}
 	data-testid="cell-{row}-{col}"
 	{onclick}
@@ -69,6 +72,16 @@
 
 	.cell.selected {
 		background: var(--cell-selected);
+	}
+
+	.cell.locked {
+		background: #d8d2c2;
+		cursor: default;
+	}
+
+	.cell.locked .number {
+		font-weight: 700;
+		color: #2a2c2a;
 	}
 
 	.cell.error {

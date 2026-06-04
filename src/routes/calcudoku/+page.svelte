@@ -225,6 +225,7 @@
 					selectedCell={calcudokuState.selectedCell}
 					onCellClick={handleCellClick}
 					hasError={(r, c) => calcudokuState.hasError(r, c)}
+					isLocked={(r, c) => calcudokuState.isLocked(r, c)}
 					{cellSize}
 				/>
 

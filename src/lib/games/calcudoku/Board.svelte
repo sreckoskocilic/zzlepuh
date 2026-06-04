@@ -10,6 +10,7 @@
 		selectedCell,
 		onCellClick,
 		hasError,
+		isLocked = () => false,
 		cellSize = 48
 	}: {
 		puzzle: CalcudokuPuzzle;
@@ -18,6 +19,7 @@
 		selectedCell: [number, number] | null;
 		onCellClick: (row: number, col: number) => void;
 		hasError: (row: number, col: number) => boolean;
+		isLocked?: (row: number, col: number) => boolean;
 		cellSize?: number;
 	} = $props();
 
@@ -83,6 +85,7 @@
 						selectedCell[0] === r &&
 						selectedCell[1] === c}
 					isError={hasError(r, c)}
+					isLocked={isLocked(r, c)}
 					onclick={() => onCellClick(r, c)}
 				/>
 			</div>
