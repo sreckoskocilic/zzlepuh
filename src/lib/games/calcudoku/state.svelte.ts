@@ -62,15 +62,15 @@ class CalcudokuState {
 
 	/** Pre-fill single-cell cages (value is forced = target) into grid; return their keys. */
 	private applySingles(puzzle: CalcudokuPuzzle, grid: number[][]): Set<string> {
-		const locked = new Set<string>();
+		const keys: string[] = [];
 		for (const cage of puzzle.cages) {
 			if (cage.cells.length === 1) {
 				const [r, c] = cage.cells[0];
 				grid[r][c] = cage.target;
-				locked.add(`${r},${c}`);
+				keys.push(`${r},${c}`);
 			}
 		}
-		return locked;
+		return new Set(keys);
 	}
 
 	get canUndo(): boolean {

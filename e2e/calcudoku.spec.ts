@@ -265,6 +265,31 @@ test.describe('Calcudoku', () => {
 		await expect(calc.cell(3, 3)).toHaveClass(/locked/);
 	});
 
+	test('single-cell givens are pre-filled with the cage target VALUE (not just the label)', async () => {
+		await calc.sizeSelect.selectOption('4');
+		await calc.startNewGame();
+
+		// A single-cell cage renders both a cage-label (target) and a .number
+		// (the stored value). Asserting the whole cell's text would also match
+		// the label, so a wrong applySingles value could slip through. Pin the
+		// actual value element: it must equal the cage target (2 and 1).
+		await expect(calc.cell(3, 2).locator('.number')).toHaveText('2');
+		await expect(calc.cell(3, 3).locator('.number')).toHaveText('1');
+	});
+
+	test('notes mode does nothing on a locked given', async () => {
+		await calc.sizeSelect.selectOption('4');
+		await calc.startNewGame();
+
+		await calc.notesToggle.click();
+		await calc.cell(3, 3).click();
+		await calc.numBtn(3).click(); // 4×4 pad is 1–4; any valid digit must be ignored on a locked cell
+
+		// Locked guard runs before the notes branch — no note added, value intact.
+		await expect(calc.cell(3, 3).locator('.notes-inline')).toHaveCount(0);
+		await expect(calc.cell(3, 3).locator('.number')).toHaveText('1');
+	});
+
 	test('hint and reset disabled before game, enabled after', async () => {
 		await expect(calc.btnHint).toBeDisabled();
 		await expect(calc.btnReset).toBeDisabled();

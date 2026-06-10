@@ -116,6 +116,7 @@
 					class:satisfied={isColSatisfied(gc)}
 					class:tr={thickR(i, j)}
 					class:tb={thickB(i, j)}
+					data-testid="col-clue-{gc}"
 					onclick={() => onColClueFill?.(gc)}
 				>
 					{#if i >= offset}
@@ -133,6 +134,7 @@
 					class:satisfied={isRowSatisfied(gr)}
 					class:tr={thickR(i, j)}
 					class:tb={thickB(i, j)}
+					data-testid="row-clue-{gr}"
 					onclick={() => onRowClueFill?.(gr)}
 				>
 					{#if j >= offset}

@@ -223,3 +223,57 @@ test.describe('Nonogram Navigation', () => {
 		await expect(sidebarLink).toBeVisible();
 	});
 });
+
+test.describe('Nonogram Header-Click Fill', () => {
+	let nono: NonogramPage;
+
+	test.beforeEach(async ({ page }) => {
+		await injectTauriMock(page);
+		nono = new NonogramPage(page);
+		await nono.goto();
+		await nono.sizeSelect.selectOption('5');
+		await nono.startNewGame();
+	});
+
+	test('clicking a row header marks remaining empties without touching filled cells', async () => {
+		// Fill one cell in row 0; the rest of the row is empty.
+		await nono.cell(0, 0).click();
+		await expect(nono.cell(0, 0)).toHaveClass(/filled/);
+
+		await nono.rowClueHeader(0).click();
+
+		// Filled cell preserved; the other four become marked.
+		await expect(nono.cell(0, 0)).toHaveClass(/filled/);
+		for (let c = 1; c < 5; c++) {
+			await expect(nono.cell(0, c)).toHaveClass(/marked/);
+		}
+	});
+
+	test('clicking a column header marks remaining empties in that column', async () => {
+		await nono.cell(0, 2).click();
+		await expect(nono.cell(0, 2)).toHaveClass(/filled/);
+
+		await nono.colClueHeader(2).click();
+
+		await expect(nono.cell(0, 2)).toHaveClass(/filled/);
+		for (let r = 1; r < 5; r++) {
+			await expect(nono.cell(r, 2)).toHaveClass(/marked/);
+		}
+	});
+
+	test('a single undo reverts the whole bulk row-mark', async () => {
+		await nono.cell(0, 0).click();
+		await nono.rowClueHeader(0).click();
+		for (let c = 1; c < 5; c++) {
+			await expect(nono.cell(0, c)).toHaveClass(/marked/);
+		}
+
+		// One undo must restore the entire row, not just one cell.
+		await nono.page.keyboard.press('Control+z');
+		for (let c = 1; c < 5; c++) {
+			await expect(nono.cell(0, c)).not.toHaveClass(/marked/);
+		}
+		// The pre-existing filled cell is untouched by the undo.
+		await expect(nono.cell(0, 0)).toHaveClass(/filled/);
+	});
+});

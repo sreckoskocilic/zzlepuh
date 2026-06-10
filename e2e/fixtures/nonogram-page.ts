@@ -48,6 +48,16 @@ export class NonogramPage {
 		return this.page.locator('[data-testid^="cell-"]');
 	}
 
+	// The clue header spans several cells that all carry the same testid and
+	// trigger the same fill handler; any one is a valid click target.
+	rowClueHeader(row: number): Locator {
+		return this.page.locator(`[data-testid="row-clue-${row}"]`).first();
+	}
+
+	colClueHeader(col: number): Locator {
+		return this.page.locator(`[data-testid="col-clue-${col}"]`).first();
+	}
+
 	get filledCells(): Locator {
 		return this.page.locator('[data-testid^="cell-"].filled');
 	}
