@@ -34,7 +34,9 @@
 	async function handleNewGame(d: Difficulty, size: GridSize) {
 		if (calcudokuState.isGenerating) return;
 		if (winTimeout) { clearTimeout(winTimeout); winTimeout = null; }
-		if (calcudokuState.isActive) {
+		// Don't book a loss while a win validation is in flight — the grid is full
+		// and being checked, so abandoning here is a pending win, not a loss.
+		if (calcudokuState.isActive && !calcudokuState.isValidatingSolution) {
 			statsStore.recordLoss('calcudoku');
 		}
 		difficulty = d;
@@ -130,6 +132,20 @@
 				if (recordedGameId === calcudokuState.currentGameId) lastRank = rank;
 			}, 0);
 		}
+	});
+
+	// Resume the paused timer when an undo reopens an already-won game (same gameId).
+	// New game / reset bump or keep gameId but call timer.restart() themselves, so skip those.
+	let prevComplete = false;
+	let prevGameId = -1;
+	$effect(() => {
+		const complete = calcudokuState.isComplete;
+		const gid = calcudokuState.currentGameId;
+		if (prevComplete && !complete && gid === prevGameId && !timer.isRunning) {
+			timer.start();
+		}
+		prevComplete = complete;
+		prevGameId = gid;
 	});
 
 	$effect(() => {

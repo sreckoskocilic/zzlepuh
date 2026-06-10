@@ -32,6 +32,11 @@ class BimaruState {
 		return this.puzzle !== null && !this.isComplete;
 	}
 
+	/** True while a win validation is in flight — the grid is full and being checked. */
+	get isValidatingSolution(): boolean {
+		return this.isValidating;
+	}
+
 	get canUndo(): boolean {
 		return this.history.length > 0;
 	}

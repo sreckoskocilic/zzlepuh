@@ -38,7 +38,9 @@
 	async function handleNewGame(d: Difficulty, size: GridSize) {
 		if (nonogramState.isGenerating) return;
 		if (winTimeout) { clearTimeout(winTimeout); winTimeout = null; }
-		if (nonogramState.isActive) {
+		// Don't book a loss while a win validation is in flight — the grid is full
+		// and being checked, so abandoning here is a pending win, not a loss.
+		if (nonogramState.isActive && !nonogramState.isValidatingSolution) {
 			statsStore.recordLoss('nonogram');
 		}
 		difficulty = d;
@@ -98,6 +100,20 @@
 				if (recordedGameId === nonogramState.currentGameId) lastRank = rank;
 			}, 0);
 		}
+	});
+
+	// Resume the paused timer when an undo reopens an already-won game (same gameId).
+	// New game / reset bump or keep gameId but call timer.restart() themselves, so skip those.
+	let prevComplete = false;
+	let prevGameId = -1;
+	$effect(() => {
+		const complete = nonogramState.isComplete;
+		const gid = nonogramState.currentGameId;
+		if (prevComplete && !complete && gid === prevGameId && !timer.isRunning) {
+			timer.start();
+		}
+		prevComplete = complete;
+		prevGameId = gid;
 	});
 
 	$effect(() => {

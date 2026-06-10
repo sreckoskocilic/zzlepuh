@@ -51,6 +51,11 @@ class CalcudokuState {
 		return this.puzzle !== null && !this.isComplete;
 	}
 
+	/** True while a win validation is in flight — the grid is full and being checked. */
+	get isValidatingSolution(): boolean {
+		return this.isValidating;
+	}
+
 	isLocked(row: number, col: number): boolean {
 		return this.locked.has(`${row},${col}`);
 	}
