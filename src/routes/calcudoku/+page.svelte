@@ -288,6 +288,15 @@
 			</button>
 		</div>
 
+	{:else if !calcudokuState.isGenerating}
+		<div class="empty-state" data-testid="empty-state">
+			<p>Click "New Game" to start</p>
+		</div>
+	{/if}
+
+	<!-- Stats + leaderboard live outside the puzzle block so they're visible
+	     between games (pick difficulty/size in the toolbar to view that board). -->
+	{#if !calcudokuState.isGenerating}
 		<div class="stats-bar" data-testid="stats-bar">
 			<span>Games: {stats.gamesPlayed}</span>
 			<span>Won: {stats.gamesWon}</span>
@@ -303,10 +312,6 @@
 		{#if showLeaderboard}
 			<Leaderboard entries={leaderboardEntries} highlightRank={lastRank} />
 		{/if}
-	{:else if !calcudokuState.isGenerating}
-		<div class="empty-state" data-testid="empty-state">
-			<p>Click "New Game" to start</p>
-		</div>
 	{/if}
 </div>
 
