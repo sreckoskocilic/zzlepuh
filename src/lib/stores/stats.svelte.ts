@@ -29,7 +29,9 @@ class StatsStore {
 
 	async recordWin(gameId: string, difficulty: Difficulty, timeMs: number, _hintsUsed: number): Promise<void> {
 		return this.enqueue(gameId, async () => {
-			const s = structuredClone(await this.load(gameId));
+			// $state.snapshot unwraps the reactive proxy to a plain object; a raw
+			// structuredClone of the proxy throws DataCloneError.
+			const s = $state.snapshot(await this.load(gameId)) as GameStats;
 			s.gamesPlayed++;
 			s.gamesWon++;
 			s.currentStreak++;
@@ -55,7 +57,7 @@ class StatsStore {
 
 	async recordLoss(gameId: string): Promise<void> {
 		return this.enqueue(gameId, async () => {
-			const s = structuredClone(await this.load(gameId));
+			const s = $state.snapshot(await this.load(gameId)) as GameStats;
 			s.gamesPlayed++;
 			s.currentStreak = 0;
 			s.lastPlayedAt = new Date().toISOString();

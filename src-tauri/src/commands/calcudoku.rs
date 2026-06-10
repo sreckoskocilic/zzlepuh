@@ -141,6 +141,23 @@ mod tests {
     }
 
     #[test]
+    fn test_validate_correct_after_json_roundtrip() {
+        // Mimic the IPC boundary: puzzle is serialized to JSON (generate -> frontend)
+        // then deserialized back (frontend -> validate). Catches any serde mismatch.
+        for size in 4..=9 {
+            for diff in ["easy", "medium", "hard"] {
+                let sol = generator::generate(size, diff).unwrap();
+                let json = serde_json::to_string(&sol.puzzle).unwrap();
+                let puzzle2: CalcudokuPuzzle = serde_json::from_str(&json).unwrap();
+                assert!(
+                    validate_calcudoku_solution(sol.solution.clone(), puzzle2),
+                    "validate failed after JSON round-trip for size={size} diff={diff}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn test_validate_correct_all_sizes_and_difficulties() {
         for size in 4..=9 {
             for diff in ["easy", "medium", "hard"] {

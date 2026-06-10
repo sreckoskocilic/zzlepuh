@@ -31,6 +31,20 @@ describe('statsStore', () => {
 		expect(s.byDifficulty.easy).toMatchObject({ played: 1, won: 1, bestTimeMs: 1000, totalTimeMs: 1000 });
 	});
 
+	it('records a win after a prior load cached the reactive proxy (no DataCloneError)', async () => {
+		// Reproduces the real bug: the page mounts and calls load() first, which
+		// caches a $state proxy. recordWin then clones that cached value — a raw
+		// structuredClone of the proxy throws DataCloneError, silently dropping the
+		// win. This must succeed.
+		const g = freshGame();
+		await statsStore.load(g); // caches the reactive proxy, like the mount effect
+		await statsStore.recordWin(g, 'easy', 1000, 0);
+		const s = statsStore.getStats(g);
+		expect(s.gamesPlayed).toBe(1);
+		expect(s.gamesWon).toBe(1);
+		expect(s.bestTimeMs.easy).toBe(1000);
+	});
+
 	it('serializes concurrent writes (no lost update / streak race)', async () => {
 		const g = freshGame();
 		// Fire without awaiting between — they must queue, not race.

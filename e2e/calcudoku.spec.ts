@@ -327,6 +327,12 @@ test.describe('Calcudoku Win Flow', () => {
 		}
 
 		await expect(calc.winOverlay).toBeVisible({ timeout: 5000 });
+
+		// Regression: recordWin did structuredClone() on a cached $state proxy, which
+		// throws DataCloneError in the browser → the win was silently never recorded.
+		// The stats bar must reflect the win.
+		await expect(calc.statsBar).toContainText('Won: 1', { timeout: 5000 });
+		await expect(calc.statsBar).toContainText('Games: 1');
 	});
 });
 
