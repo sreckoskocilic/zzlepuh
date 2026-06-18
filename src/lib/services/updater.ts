@@ -1,23 +1,32 @@
 import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
+import { info, error } from '@tauri-apps/plugin-log';
 
 /**
- * Silent auto-update: checks GitHub Releases, downloads + installs in the
- * background, then reports the new version so the UI can ask for a restart.
- * No buttons, no prompts. Safe no-op outside the Tauri runtime (web/dev).
- *
- * @param onInstalled called with the new version once the update is staged.
+ * Auto-update with VISIBLE status so a stuck/failed update can be diagnosed
+ * on a user's machine without opening a log file. Reports each stage (and any
+ * error text) via onStatus; restarts the app once the update is installed.
+ * Safe no-op outside the Tauri runtime (web/dev/E2E).
  */
-export async function runSilentUpdate(onInstalled: (version: string) => void): Promise<void> {
-	// Outside Tauri (browser/dev/E2E) the plugin bridge is absent — skip.
+export async function runSilentUpdate(onStatus: (msg: string) => void): Promise<void> {
 	if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return;
 
 	try {
+		await info('[updater] checking…');
 		const update = await check();
-		if (!update) return;
+		if (!update) {
+			await info('[updater] no update (already latest)');
+			return; // up to date — say nothing
+		}
+		onStatus(`Pronađena v${update.version} — preuzimam…`);
+		await info(`[updater] found ${update.currentVersion} → ${update.version}; downloading…`);
 		await update.downloadAndInstall();
-		onInstalled(update.version);
+		await info(`[updater] installed ${update.version}; relaunching…`);
+		onStatus(`Ažurirano na v${update.version} — ponovo pokrećem…`);
+		await relaunch();
 	} catch (err) {
-		// Network down, no release yet, signature mismatch — fail quietly.
-		console.error('[updater] silent update failed:', err);
+		const msg = err instanceof Error ? err.message : String(err);
+		await error(`[updater] FAILED: ${msg}`);
+		onStatus(`Update greška: ${msg}`);
 	}
 }

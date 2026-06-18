@@ -9,18 +9,23 @@
 
 	void themeStore.init();
 
-	let updatedVersion = $state<string | null>(null);
+	let updateStatus = $state<string | null>(null);
+	let updateError = $state(false);
 
 	onMount(() => {
-		void runSilentUpdate((v) => {
-			updatedVersion = v;
+		void runSilentUpdate((msg) => {
+			updateStatus = msg;
+			updateError = msg.startsWith('Update greška');
 		});
 	});
 </script>
 
-{#if updatedVersion}
-	<div class="update-banner" role="status">
-		Ažurirano na v{updatedVersion} — ponovo pokreni aplikaciju da se primijeni.
+{#if updateStatus}
+	<div class="update-banner" class:err={updateError} role="status">
+		{updateStatus}
+		{#if updateError}
+			<button class="dismiss" onclick={() => (updateStatus = null)}>×</button>
+		{/if}
 	</div>
 {/if}
 
@@ -57,5 +62,23 @@
 		color: var(--color-bg, #0a0f0c);
 		background: var(--color-accent, #34d399);
 		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+	}
+
+	.update-banner.err {
+		color: #fff;
+		background: #c0392b;
+		font-weight: 500;
+	}
+
+	.dismiss {
+		margin-left: 0.6rem;
+		background: rgba(255, 255, 255, 0.2);
+		border: none;
+		color: #fff;
+		border-radius: 4px;
+		cursor: pointer;
+		padding: 0 0.4rem;
+		font-size: 1rem;
+		line-height: 1.2;
 	}
 </style>

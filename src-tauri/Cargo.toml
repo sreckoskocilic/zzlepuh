@@ -1,6 +1,6 @@
 [package]
 name = "zzlepuh"
-version = "1.2.2"
+version = "1.2.3"
 description = "Zzlepuh — Desktop Puzzle Game Platform"
 authors = ["Srecko Skocilic"]
 license = ""
@@ -26,9 +26,10 @@ tauri-plugin-window-state = "2.4.1"
 rand = "0.9"
 thiserror = "2"
 
-# Updater is desktop-only (not available on mobile targets)
+# Updater + process (relaunch) are desktop-only (not available on mobile)
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
