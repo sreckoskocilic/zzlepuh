@@ -61,22 +61,25 @@ class NonogramState {
 		this.errorCells = new Set();
 
 		try {
-			const puzzle = await generateNonogramPuzzle(difficulty, rows, cols);
-			this.puzzle = puzzle;
-			this.grid = Array.from({ length: puzzle.rows }, () =>
-				Array.from({ length: puzzle.cols }, () => 'empty' as CellState)
-			);
-			this.isComplete = false;
-			this.hintsUsed = 0;
-			this.gameId++;
-			this.isValidating = false;
-			this.history = [];
-			this.redoStack = [];
+			this.loadPuzzle(await generateNonogramPuzzle(difficulty, rows, cols));
 		} catch (e) {
 			this.error = String(e);
 		} finally {
 			this.isGenerating = false;
 		}
+	}
+
+	private loadPuzzle(puzzle: NonogramPuzzle): void {
+		this.puzzle = puzzle;
+		this.grid = Array.from({ length: puzzle.rows }, () =>
+			Array.from({ length: puzzle.cols }, () => 'empty' as CellState)
+		);
+		this.isComplete = false;
+		this.hintsUsed = 0;
+		this.gameId++;
+		this.isValidating = false;
+		this.history = [];
+		this.redoStack = [];
 	}
 
 	fillCell(row: number, col: number): void {

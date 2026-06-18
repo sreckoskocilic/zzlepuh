@@ -28,8 +28,9 @@
 		const { rows, cols, row_clues, col_clues } = nonogramState.puzzle;
 		const maxRowClueLen = Math.max(...row_clues.map((c: number[]) => c.length));
 		const maxColClueLen = Math.max(...col_clues.map((c: number[]) => c.length));
-		const totalCols = maxRowClueLen + cols;
-		const totalRows = maxColClueLen + rows;
+		// +1 each for the sum band (leftmost col / topmost row).
+		const totalCols = 1 + maxRowClueLen + cols;
+		const totalRows = 1 + maxColClueLen + rows;
 		const fromW = (areaWidth - 4) / totalCols;
 		const fromH = (areaHeight - 4) / totalRows;
 		return Math.floor(Math.max(14, Math.min(fromW, fromH)));

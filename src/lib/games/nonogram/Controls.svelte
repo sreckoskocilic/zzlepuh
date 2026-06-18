@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Difficulty } from '$lib/types/game';
 
-	export type GridSize = 5 | 10 | 15 | 20;
+	export type GridSize = 5 | 10 | 15 | 20 | 25;
 
 	let {
 		isGenerating = false,
@@ -38,6 +38,7 @@
 			<option value={10}>10×10</option>
 			<option value={15}>15×15</option>
 			<option value={20}>20×20</option>
+			<option value={25}>25×25</option>
 		</select>
 		<select class="select" data-testid="difficulty-select" bind:value={difficulty}>
 			<option value="easy">Easy</option>

@@ -6,8 +6,8 @@ pub async fn generate_nonogram_puzzle(
     rows: Option<usize>,
     cols: Option<usize>,
 ) -> Result<NonogramPuzzle, String> {
-    let rows = rows.unwrap_or(10).clamp(5, 20);
-    let cols = cols.unwrap_or(10).clamp(5, 20);
+    let rows = rows.unwrap_or(10).clamp(5, 25);
+    let cols = cols.unwrap_or(10).clamp(5, 25);
 
     tauri::async_runtime::spawn_blocking(move || {
         generator::generate(rows, cols, &difficulty)
