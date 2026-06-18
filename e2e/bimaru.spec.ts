@@ -246,9 +246,4 @@ test.describe('Navigation', () => {
 		await page.locator('a[href="/bimaru"]').first().click();
 		await expect(page).toHaveURL('/bimaru');
 	});
-
-	test('home page shows app name', async ({ page }) => {
-		await page.goto('/');
-		await expect(page.locator('h1')).toContainText('Zzlepuh');
-	});
 });

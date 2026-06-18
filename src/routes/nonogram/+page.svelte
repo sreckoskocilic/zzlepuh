@@ -22,7 +22,8 @@
 	let revealClosed = $state(false);
 	onMount(async () => {
 		try {
-			pictures = await listNonogramPictures();
+			// `?? []`: a mock/non-Tauri host can resolve null, which would crash Controls.
+			pictures = (await listNonogramPictures()) ?? [];
 		} catch {
 			/* not in Tauri / no pictures */
 		}

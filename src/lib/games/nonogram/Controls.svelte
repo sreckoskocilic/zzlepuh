@@ -53,7 +53,7 @@
 			<option value="hard">Hard</option>
 		</select>
 
-		{#if pictures.length}
+		{#if pictures?.length}
 			<!-- Anonymous: numbered only, so the picker never spoils the image. -->
 			<select
 				class="select"
