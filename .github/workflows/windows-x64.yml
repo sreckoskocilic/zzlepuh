@@ -28,6 +28,10 @@ jobs:
             ~/.cargo/git
             src-tauri/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          # Version bumps change Cargo.lock's hash → exact key misses every release.
+          # Fall back to the newest prior cargo cache so deps + target are reused.
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
       - name: Install deps
         run: npm ci
