@@ -3,15 +3,20 @@ use rand::Rng;
 use super::solver;
 use super::types::*;
 
+/// Random Latin-square attempts before giving up on a puzzle.
+const MAX_LATIN_ATTEMPTS: usize = 50;
+/// Cage-partition attempts per Latin square before regenerating the square.
+const MAX_CAGE_ATTEMPTS: usize = 10;
+
 pub fn generate(size: usize, difficulty: &str) -> Option<CalcudokuSolution> {
     let mut rng = rand::rng();
 
-    for _ in 0..50 {
+    for _ in 0..MAX_LATIN_ATTEMPTS {
         let Some(grid) = generate_latin_square(size, &mut rng) else {
             continue;
         };
 
-        for _ in 0..10 {
+        for _ in 0..MAX_CAGE_ATTEMPTS {
             let cages = generate_cages(size, &grid, difficulty, &mut rng);
             let puzzle = CalcudokuPuzzle {
                 size,
@@ -104,60 +109,77 @@ fn generate_cages(
         if used[r][c] {
             continue;
         }
-
-        let mut cage_cells = vec![(r, c)];
         used[r][c] = true;
 
         if rng.random_bool(single_prob) {
-            let values: Vec<u8> = cage_cells.iter().map(|&(r, c)| grid[r][c]).collect();
-            let (operation, target) = assign_operation(&values, difficulty, rng);
-            cages.push(Cage {
-                cells: cage_cells,
-                operation,
-                target,
-            });
+            finalize_cage(&mut cages, vec![(r, c)], grid, difficulty, rng);
             continue;
         }
 
         let target_size = rng.random_range(2..=max_cage);
-
-        while cage_cells.len() < target_size {
-            let mut neighbors = Vec::new();
-            for &(cr, cc) in &cage_cells {
-                for (dr, dc) in [(0i32, 1i32), (0, -1), (1, 0), (-1, 0)] {
-                    let nr = cr as i32 + dr;
-                    let nc = cc as i32 + dc;
-                    if nr >= 0 && nr < size as i32 && nc >= 0 && nc < size as i32 {
-                        let (nr, nc) = (nr as usize, nc as usize);
-                        if !used[nr][nc] && !cage_cells.contains(&(nr, nc)) {
-                            neighbors.push((nr, nc));
-                        }
-                    }
-                }
-            }
-            neighbors.sort_unstable();
-            neighbors.dedup();
-
-            if neighbors.is_empty() {
-                break;
-            }
-
-            let idx = rng.random_range(0..neighbors.len());
-            let (nr, nc) = neighbors[idx];
-            cage_cells.push((nr, nc));
-            used[nr][nc] = true;
-        }
-
-        let values: Vec<u8> = cage_cells.iter().map(|&(r, c)| grid[r][c]).collect();
-        let (operation, target) = assign_operation(&values, difficulty, rng);
-        cages.push(Cage {
-            cells: cage_cells,
-            operation,
-            target,
-        });
+        let cage_cells = grow_cage((r, c), size, &mut used, target_size, rng);
+        finalize_cage(&mut cages, cage_cells, grid, difficulty, rng);
     }
 
     cages
+}
+
+/// Grow a cage from `seed` up to `target_size` cells by random adjacent accretion,
+/// marking each claimed cell in `used`. Stops early if it runs out of free neighbours.
+fn grow_cage(
+    seed: (usize, usize),
+    size: usize,
+    used: &mut [Vec<bool>],
+    target_size: usize,
+    rng: &mut impl Rng,
+) -> Vec<(usize, usize)> {
+    let mut cage_cells = vec![seed];
+
+    while cage_cells.len() < target_size {
+        let mut neighbors = Vec::new();
+        for &(cr, cc) in &cage_cells {
+            for (dr, dc) in [(0i32, 1i32), (0, -1), (1, 0), (-1, 0)] {
+                let nr = cr as i32 + dr;
+                let nc = cc as i32 + dc;
+                if nr >= 0 && nr < size as i32 && nc >= 0 && nc < size as i32 {
+                    let (nr, nc) = (nr as usize, nc as usize);
+                    if !used[nr][nc] && !cage_cells.contains(&(nr, nc)) {
+                        neighbors.push((nr, nc));
+                    }
+                }
+            }
+        }
+        neighbors.sort_unstable();
+        neighbors.dedup();
+
+        if neighbors.is_empty() {
+            break;
+        }
+
+        let idx = rng.random_range(0..neighbors.len());
+        let (nr, nc) = neighbors[idx];
+        cage_cells.push((nr, nc));
+        used[nr][nc] = true;
+    }
+
+    cage_cells
+}
+
+/// Assign an operation/target derived from the solution values and record the cage.
+fn finalize_cage(
+    cages: &mut Vec<Cage>,
+    cells: Vec<(usize, usize)>,
+    grid: &[Vec<u8>],
+    difficulty: &str,
+    rng: &mut impl Rng,
+) {
+    let values: Vec<u8> = cells.iter().map(|&(r, c)| grid[r][c]).collect();
+    let (operation, target) = assign_operation(&values, difficulty, rng);
+    cages.push(Cage {
+        cells,
+        operation,
+        target,
+    });
 }
 
 fn assign_operation(
@@ -213,6 +235,79 @@ fn assign_operation(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Full validity of a generated calcudoku: Latin-square rows/cols, cages cover
+    /// every cell exactly once, each cage's arithmetic matches the solution, the
+    /// puzzle is uniquely solvable, and easy puzzles avoid multiply/divide.
+    fn assert_valid_calcudoku(sol: &CalcudokuSolution, difficulty: &str) {
+        let grid = &sol.solution;
+        let n = sol.puzzle.size;
+        for r in 0..n {
+            let mut seen = vec![false; n + 1];
+            for c in 0..n {
+                let v = grid[r][c] as usize;
+                assert!(v >= 1 && v <= n, "value out of range at ({},{}) size {}", r, c, n);
+                assert!(!seen[v], "row {} duplicate, size {}", r, n);
+                seen[v] = true;
+            }
+        }
+        for c in 0..n {
+            let mut seen = vec![false; n + 1];
+            for r in 0..n {
+                let v = grid[r][c] as usize;
+                assert!(!seen[v], "col {} duplicate, size {}", c, n);
+                seen[v] = true;
+            }
+        }
+        let mut covered = vec![vec![false; n]; n];
+        for cage in &sol.puzzle.cages {
+            let values: Vec<u8> = cage.cells.iter().map(|&(r, c)| grid[r][c]).collect();
+            assert!(
+                check_cage_values(&values, cage.operation, cage.target),
+                "cage {:?} fails op {:?} target {} (size {} {})",
+                cage.cells, cage.operation, cage.target, n, difficulty
+            );
+            for &(r, c) in &cage.cells {
+                assert!(!covered[r][c], "cell ({},{}) in two cages, size {}", r, c, n);
+                covered[r][c] = true;
+            }
+            if difficulty == "easy" {
+                assert!(
+                    !matches!(cage.operation, Operation::Multiply | Operation::Divide),
+                    "easy puzzle used mul/div, size {}",
+                    n
+                );
+            }
+        }
+        assert!(
+            covered.iter().all(|row| row.iter().all(|&x| x)),
+            "cages do not cover every cell, size {}",
+            n
+        );
+        assert!(
+            solver::has_unique_solution(&sol.puzzle),
+            "puzzle not unique, size {} {}",
+            n, difficulty
+        );
+    }
+
+    #[test]
+    fn test_generate_valid_across_sizes() {
+        for (size, diff) in [
+            (4, "easy"),
+            (4, "medium"),
+            (4, "hard"),
+            (5, "medium"),
+            (6, "medium"),
+            (7, "easy"),
+            (8, "medium"),
+            (9, "easy"),
+        ] {
+            let sol = generate(size, diff).unwrap_or_else(|| panic!("generate {} {}", size, diff));
+            assert_eq!(sol.puzzle.size, size);
+            assert_valid_calcudoku(&sol, diff);
+        }
+    }
 
     #[test]
     fn test_generate_4x4_easy() {

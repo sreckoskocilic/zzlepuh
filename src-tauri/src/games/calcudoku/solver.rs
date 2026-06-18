@@ -2,6 +2,65 @@ use std::time::{Duration, Instant};
 
 use super::types::*;
 
+/// Backtracking stops once this many solutions are found — we only need to tell
+/// "unique" (1) from "ambiguous" (≥2).
+const UNIQUENESS_LIMIT: usize = 2;
+/// Wall-clock budget for a uniqueness check before we give up.
+const SOLVE_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Naked-single elimination along one line (the cells in `coords`): any cell fixed
+/// to a value removes that value from the line's other cells. False on contradiction.
+fn eliminate_in_line(domains: &mut [Vec<Vec<u8>>], coords: &[(usize, usize)]) -> bool {
+    for i in 0..coords.len() {
+        let (r, c) = coords[i];
+        if domains[r][c].len() != 1 {
+            continue;
+        }
+        let val = domains[r][c][0];
+        for (j, &(r2, c2)) in coords.iter().enumerate() {
+            if j == i {
+                continue;
+            }
+            domains[r2][c2].retain(|&v| v != val);
+            if domains[r2][c2].is_empty() {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+/// Hidden-single assignment along one line: if a value fits in exactly one cell of
+/// the line, fix that cell to it. False if some value fits nowhere (contradiction).
+fn assign_hidden_in_line(domains: &mut [Vec<Vec<u8>>], coords: &[(usize, usize)], n: usize) -> bool {
+    for val in 1..=n as u8 {
+        let positions: Vec<usize> = (0..coords.len())
+            .filter(|&i| {
+                let (r, c) = coords[i];
+                domains[r][c].contains(&val)
+            })
+            .collect();
+        if positions.is_empty() {
+            return false;
+        }
+        if positions.len() == 1 {
+            let (r, c) = coords[positions[0]];
+            if domains[r][c].len() > 1 {
+                domains[r][c] = vec![val];
+            }
+        }
+    }
+    true
+}
+
+fn row_coords(r: usize, n: usize) -> Vec<(usize, usize)> {
+    (0..n).map(|c| (r, c)).collect()
+}
+
+fn col_coords(c: usize, n: usize) -> Vec<(usize, usize)> {
+    (0..n).map(|r| (r, c)).collect()
+}
+
 #[cfg(test)]
 pub fn solve(puzzle: &CalcudokuPuzzle) -> Option<Vec<Vec<u8>>> {
     solve_internal(puzzle, None, None)
@@ -57,7 +116,7 @@ fn solve_internal(
 }
 
 pub fn has_unique_solution(puzzle: &CalcudokuPuzzle) -> bool {
-    has_unique_solution_timed(puzzle, Duration::from_secs(5))
+    has_unique_solution_timed(puzzle, SOLVE_TIMEOUT)
 }
 
 pub fn has_unique_solution_timed(puzzle: &CalcudokuPuzzle, timeout: Duration) -> bool {
@@ -74,8 +133,42 @@ pub fn has_unique_solution_timed(puzzle: &CalcudokuPuzzle, timeout: Duration) ->
     }
 
     let mut count = 0;
-    count_backtrack(&domains, puzzle, &mut count, 2, deadline);
+    count_backtrack(&domains, puzzle, &mut count, UNIQUENESS_LIMIT, deadline);
     count == 1
+}
+
+/// Validate a completed player grid: every row and column is a permutation of
+/// 1..=n and every cage's arithmetic matches. The IPC layer calls this after its
+/// shape/bounds guards (grid is n×n and cage cells are in bounds).
+pub fn is_valid_solution(grid: &[Vec<u8>], puzzle: &CalcudokuPuzzle) -> bool {
+    let n = puzzle.size;
+    for row in grid {
+        let mut seen = vec![false; n + 1];
+        for &val in row {
+            let v = val as usize;
+            if v == 0 || v > n || seen[v] {
+                return false;
+            }
+            seen[v] = true;
+        }
+    }
+    for c in 0..n {
+        let mut seen = vec![false; n + 1];
+        for row in grid.iter().take(n) {
+            let v = row[c] as usize;
+            if v > n || seen[v] {
+                return false;
+            }
+            seen[v] = true;
+        }
+    }
+    for cage in &puzzle.cages {
+        let values: Vec<u8> = cage.cells.iter().map(|&(r, c)| grid[r][c]).collect();
+        if !check_cage_values(&values, cage.operation, cage.target) {
+            return false;
+        }
+    }
+    true
 }
 
 fn initial_domains(n: usize) -> Vec<Vec<Vec<u8>>> {
@@ -115,70 +208,34 @@ fn count_backtrack(
     }
 }
 
-#[allow(clippy::needless_range_loop)]
 fn propagate(domains: &mut Vec<Vec<Vec<u8>>>, puzzle: &CalcudokuPuzzle) -> bool {
     let n = puzzle.size;
     loop {
+        // Domain-size fingerprint; the loop runs to a fixpoint (no domain shrank).
         let snapshot: Vec<Vec<usize>> = domains
             .iter()
             .map(|row| row.iter().map(|d| d.len()).collect())
             .collect();
 
+        // Latin-square constraints: naked then hidden singles, along rows then columns.
         for r in 0..n {
-            for c in 0..n {
-                if domains[r][c].len() == 1 {
-                    let val = domains[r][c][0];
-                    for c2 in 0..n {
-                        if c2 != c {
-                            domains[r][c2].retain(|&v| v != val);
-                            if domains[r][c2].is_empty() {
-                                return false;
-                            }
-                        }
-                    }
-                }
+            if !eliminate_in_line(domains, &row_coords(r, n)) {
+                return false;
             }
         }
-
         for c in 0..n {
-            for r in 0..n {
-                if domains[r][c].len() == 1 {
-                    let val = domains[r][c][0];
-                    for r2 in 0..n {
-                        if r2 != r {
-                            domains[r2][c].retain(|&v| v != val);
-                            if domains[r2][c].is_empty() {
-                                return false;
-                            }
-                        }
-                    }
-                }
+            if !eliminate_in_line(domains, &col_coords(c, n)) {
+                return false;
             }
         }
-
         for r in 0..n {
-            for val in 1..=n as u8 {
-                let positions: Vec<usize> =
-                    (0..n).filter(|&c| domains[r][c].contains(&val)).collect();
-                if positions.is_empty() {
-                    return false;
-                }
-                if positions.len() == 1 && domains[r][positions[0]].len() > 1 {
-                    domains[r][positions[0]] = vec![val];
-                }
+            if !assign_hidden_in_line(domains, &row_coords(r, n), n) {
+                return false;
             }
         }
-
         for c in 0..n {
-            for val in 1..=n as u8 {
-                let positions: Vec<usize> =
-                    (0..n).filter(|&r| domains[r][c].contains(&val)).collect();
-                if positions.is_empty() {
-                    return false;
-                }
-                if positions.len() == 1 && domains[positions[0]][c].len() > 1 {
-                    domains[positions[0]][c] = vec![val];
-                }
+            if !assign_hidden_in_line(domains, &col_coords(c, n), n) {
+                return false;
             }
         }
 

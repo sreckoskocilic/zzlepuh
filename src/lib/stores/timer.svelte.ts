@@ -1,3 +1,5 @@
+import { formatTime } from '$lib/utils/format';
+
 class TimerState {
 	elapsedMs = $state(0);
 	isRunning = $state(false);
@@ -38,9 +40,7 @@ class TimerState {
 	}
 
 	get formatted(): string {
-		const secs = Math.floor(this.elapsedMs / 1000);
-		const mins = Math.floor(secs / 60);
-		return `${String(mins).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
+		return formatTime(this.elapsedMs);
 	}
 }
 

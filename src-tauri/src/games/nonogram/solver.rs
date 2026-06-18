@@ -9,6 +9,20 @@ enum Cell {
     Empty,
 }
 
+/// Backtracking stops once this many solutions are found — we only need to tell
+/// "unique" (1) from "ambiguous" (≥2).
+const UNIQUENESS_LIMIT: usize = 2;
+/// Wall-clock budget for a uniqueness check before we give up.
+const SOLVE_TIMEOUT: Duration = Duration::from_secs(5);
+
+fn any_empty(line: &[Cell], start: usize, end: usize) -> bool {
+    (start..end).any(|i| line[i] == Cell::Empty)
+}
+
+fn any_filled(line: &[Cell], start: usize, end: usize) -> bool {
+    (start..end).any(|i| line[i] == Cell::Filled)
+}
+
 #[cfg(test)]
 pub fn solve(
     row_clues: &[Vec<usize>],
@@ -118,8 +132,32 @@ pub fn has_unique_solution(
     rows: usize,
     cols: usize,
 ) -> bool {
-    let deadline = Instant::now() + Duration::from_secs(5);
-    count_solutions_up_to(row_clues, col_clues, rows, cols, 2, deadline) == 1
+    let deadline = Instant::now() + SOLVE_TIMEOUT;
+    count_solutions_up_to(row_clues, col_clues, rows, cols, UNIQUENESS_LIMIT, deadline) == 1
+}
+
+/// True if the Filled cells of a completed grid produce exactly the given row/col
+/// clues. Blanks (Empty or Marked) count the same — only Filled runs match. The IPC
+/// layer calls this after its shape guards (grid is rows×cols, clue lengths match).
+pub fn is_valid_solution(
+    grid: &[Vec<CellState>],
+    row_clues: &[Vec<usize>],
+    col_clues: &[Vec<usize>],
+    rows: usize,
+) -> bool {
+    for (r, clue) in row_clues.iter().enumerate() {
+        let line: Vec<bool> = grid[r].iter().map(|c| *c == CellState::Filled).collect();
+        if &clues_from_line(&line) != clue {
+            return false;
+        }
+    }
+    for (c, clue) in col_clues.iter().enumerate() {
+        let line: Vec<bool> = (0..rows).map(|r| grid[r][c] == CellState::Filled).collect();
+        if &clues_from_line(&line) != clue {
+            return false;
+        }
+    }
+    true
 }
 
 fn count_solutions_up_to(
@@ -272,11 +310,11 @@ fn generate_placements_rec(
     placement: &mut Vec<bool>,
     results: &mut Vec<Vec<bool>>,
 ) {
+    // No clues left: the tail must be all-empty. Reject if it holds a known-Filled
+    // cell, otherwise record this placement with the tail cleared.
     if clue_idx == clues.len() {
-        for i in pos..len {
-            if line[i] == Cell::Filled {
-                return;
-            }
+        if any_filled(line, pos, len) {
+            return;
         }
         let mut p = placement.clone();
         for i in pos..len {
@@ -286,12 +324,11 @@ fn generate_placements_rec(
         return;
     }
 
-    let remaining_clues: usize = clues[clue_idx..].iter().sum::<usize>()
-        + clues.len() - clue_idx - 1;
-
-    let max_start = if len >= remaining_clues {
-        len - remaining_clues
-    } else {
+    // Minimum width the remaining clues need: their total length plus one mandatory
+    // gap between each consecutive pair. If that can't fit, this branch is dead.
+    let min_width_remaining: usize =
+        clues[clue_idx..].iter().sum::<usize>() + (clues.len() - clue_idx - 1);
+    let Some(max_start) = len.checked_sub(min_width_remaining) else {
         return;
     };
 
@@ -300,10 +337,12 @@ fn generate_placements_rec(
             continue;
         }
 
+        // The cells between the previous block and this start are gap (empty). A
+        // known-Filled cell there means no valid start ≥ here, so bail.
+        if any_filled(line, pos, start) {
+            return;
+        }
         for i in pos..start {
-            if line[i] == Cell::Filled {
-                return;
-            }
             placement[i] = false;
         }
 
@@ -312,14 +351,8 @@ fn generate_placements_rec(
             break;
         }
 
-        let mut valid = true;
-        for i in start..block_end {
-            if line[i] == Cell::Empty {
-                valid = false;
-                break;
-            }
-        }
-        if !valid {
+        // The block can't cover a known-Empty cell.
+        if any_empty(line, start, block_end) {
             continue;
         }
 

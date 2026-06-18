@@ -3,13 +3,14 @@
 	import { calcudokuState } from '$lib/games/calcudoku/state.svelte';
 	import Board from '$lib/games/calcudoku/Board.svelte';
 	import Controls from '$lib/games/calcudoku/Controls.svelte';
-	import WinOverlay from '$lib/games/bimaru/WinOverlay.svelte';
-	import Leaderboard from '$lib/games/bimaru/Leaderboard.svelte';
+	import WinOverlay from '$lib/components/WinOverlay.svelte';
+	import Leaderboard from '$lib/components/Leaderboard.svelte';
 	import { timer } from '$lib/stores/timer.svelte';
 	import { statsStore } from '$lib/stores/stats.svelte';
 	import { leaderboardStore } from '$lib/stores/leaderboard.svelte';
 	import type { Difficulty } from '$lib/types/game';
 	import type { GridSize } from '$lib/games/calcudoku/Controls.svelte';
+	import { formatTime } from '$lib/utils/format';
 
 	onMount(() => timer.reset());
 	onDestroy(() => timer.pause());
@@ -121,7 +122,7 @@
 			const recordedGameId = calcudokuState.currentGameId;
 			winTimeout = setTimeout(async () => {
 				winTimeout = null;
-				await statsStore.recordWin('calcudoku', gameDifficulty, ms, hints);
+				await statsStore.recordWin('calcudoku', gameDifficulty, ms);
 				const rank = await leaderboardStore.addEntry(
 					'calcudoku',
 					gameDifficulty,
@@ -314,14 +315,6 @@
 		{/if}
 	{/if}
 </div>
-
-<script lang="ts" module>
-	function formatTime(ms: number): string {
-		const secs = Math.floor(ms / 1000);
-		const mins = Math.floor(secs / 60);
-		return `${String(mins).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
-	}
-</script>
 
 <style>
 	.game-page {

@@ -4,13 +4,14 @@
 	import Board from '$lib/games/bimaru/Board.svelte';
 	import Fleet from '$lib/games/bimaru/Fleet.svelte';
 	import Controls from '$lib/games/bimaru/Controls.svelte';
-	import WinOverlay from '$lib/games/bimaru/WinOverlay.svelte';
+	import WinOverlay from '$lib/components/WinOverlay.svelte';
 	import { timer } from '$lib/stores/timer.svelte';
 	import { statsStore } from '$lib/stores/stats.svelte';
 	import { leaderboardStore } from '$lib/stores/leaderboard.svelte';
-	import Leaderboard from '$lib/games/bimaru/Leaderboard.svelte';
+	import Leaderboard from '$lib/components/Leaderboard.svelte';
 	import type { Difficulty } from '$lib/types/game';
 	import type { GridSize } from '$lib/games/bimaru/Controls.svelte';
+	import { formatTime } from '$lib/utils/format';
 
 	onMount(() => timer.reset());
 	onDestroy(() => timer.pause());
@@ -103,7 +104,7 @@
 			const recordedGameId = bimaruState.currentGameId;
 			winTimeout = setTimeout(async () => {
 				winTimeout = null;
-				await statsStore.recordWin('bimaru', gameDifficulty, ms, hints);
+				await statsStore.recordWin('bimaru', gameDifficulty, ms);
 				const rank = await leaderboardStore.addEntry('bimaru', gameDifficulty, gameSize, ms, hints);
 				if (recordedGameId === bimaruState.currentGameId) lastRank = rank;
 			}, 0);
@@ -229,14 +230,6 @@
 		{/if}
 	{/if}
 </div>
-
-<script lang="ts" module>
-	function formatTime(ms: number): string {
-		const secs = Math.floor(ms / 1000);
-		const mins = Math.floor(secs / 60);
-		return `${String(mins).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
-	}
-</script>
 
 <style>
 	.game-page {

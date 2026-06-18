@@ -4,7 +4,13 @@ use rand::seq::SliceRandom;
 use rand::Rng;
 
 use super::solver;
+use super::solver::UNIQUENESS_LIMIT;
 use super::types::*;
+
+/// How many random ship layouts to try before giving up on a puzzle.
+const MAX_GENERATION_ATTEMPTS: usize = 500;
+/// Per-uniqueness-check solver budget; keeps generation responsive.
+const SOLVE_TIMEOUT: Duration = Duration::from_millis(200);
 
 pub fn generate(
     rows: usize,
@@ -13,9 +19,9 @@ pub fn generate(
     fleet: &Fleet,
 ) -> Option<BimaruSolution> {
     let mut rng = rand::rng();
-    let timeout = Duration::from_millis(200);
+    let timeout = SOLVE_TIMEOUT;
 
-    for _ in 0..500 {
+    for _ in 0..MAX_GENERATION_ATTEMPTS {
         let Some(solution_grid) = place_all_ships(rows, cols, fleet, &mut rng) else {
             continue;
         };
@@ -23,7 +29,7 @@ pub fn generate(
         let row_clues = compute_row_clues(&solution_grid, rows, cols);
         let col_clues = compute_col_clues(&solution_grid, rows, cols);
 
-        let initial_hints = select_hints(&solution_grid, rows, cols, "easy", &mut rng);
+        let initial_hints = select_hints(&solution_grid, rows, cols, &mut rng);
 
         let count = solver::count_solutions_timed(
             &row_clues,
@@ -32,7 +38,7 @@ pub fn generate(
             fleet,
             rows,
             cols,
-            2,
+            UNIQUENESS_LIMIT,
             Some(timeout),
         );
 
@@ -121,7 +127,7 @@ fn strip_hints(
         current[r][c] = HintCell::Empty;
 
         let count = solver::count_solutions_timed(
-            row_clues, col_clues, &current, fleet, rows, cols, 2, Some(timeout),
+            row_clues, col_clues, &current, fleet, rows, cols, UNIQUENESS_LIMIT, Some(timeout),
         );
 
         if count == 1 {
@@ -279,7 +285,6 @@ fn select_hints(
     grid: &[Vec<CellValue>],
     rows: usize,
     cols: usize,
-    _difficulty: &str,
     rng: &mut impl Rng,
 ) -> Vec<Vec<HintCell>> {
     let size = rows.min(cols);
@@ -300,21 +305,25 @@ fn select_hints(
     }
     candidates.shuffle(rng);
 
+    // First pass: place a balanced mix, capping ship hints at ~half so the puzzle
+    // isn't dominated by either kind. `water_target` is the matching water budget.
     let mut placed = 0;
     let mut ship_hints = 0;
     let target_ship = (hint_count + 1) / 2;
+    let water_target = hint_count - target_ship;
 
     for &(r, c) in &candidates {
         if placed >= hint_count {
             break;
         }
+        let water_hints = placed - ship_hints;
         match grid[r][c] {
             CellValue::Ship if ship_hints < target_ship => {
                 hints[r][c] = HintCell::Ship;
                 ship_hints += 1;
                 placed += 1;
             }
-            CellValue::Water if placed - ship_hints < hint_count - target_ship => {
+            CellValue::Water if water_hints < water_target => {
                 hints[r][c] = HintCell::Water;
                 placed += 1;
             }
@@ -348,6 +357,63 @@ fn select_hints(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Full structural validity of a generated puzzle: clues match the solution,
+    /// no diagonal ship adjacency, fleet total is correct, and the published
+    /// clues + hints admit exactly one solution.
+    fn assert_valid_bimaru(sol: &BimaruSolution, fleet: &Fleet) {
+        let p = &sol.puzzle;
+        let grid = &sol.solution;
+        let (rows, cols) = (p.rows, p.cols);
+        for r in 0..rows {
+            let cnt = (0..cols).filter(|&c| grid[r][c] == CellValue::Ship).count();
+            assert_eq!(cnt, p.row_clues[r], "row clue {} on {}x{}", r, rows, cols);
+        }
+        for c in 0..cols {
+            let cnt = (0..rows).filter(|&r| grid[r][c] == CellValue::Ship).count();
+            assert_eq!(cnt, p.col_clues[c], "col clue {} on {}x{}", c, rows, cols);
+        }
+        for r in 0..rows {
+            for c in 0..cols {
+                if grid[r][c] != CellValue::Ship {
+                    continue;
+                }
+                for (dr, dc) in [(-1i32, -1i32), (-1, 1), (1, -1), (1, 1)] {
+                    let (nr, nc) = (r as i32 + dr, c as i32 + dc);
+                    if nr >= 0 && nr < rows as i32 && nc >= 0 && nc < cols as i32 {
+                        assert_ne!(
+                            grid[nr as usize][nc as usize],
+                            CellValue::Ship,
+                            "diagonal adjacency at ({},{}) on {}x{}",
+                            r, c, rows, cols
+                        );
+                    }
+                }
+            }
+        }
+        let total = grid.iter().flatten().filter(|&&v| v == CellValue::Ship).count();
+        assert_eq!(total, fleet.total_cells(), "ship total on {}x{}", rows, cols);
+        let count = solver::count_solutions(
+            &p.row_clues, &p.col_clues, &p.hints, fleet, rows, cols, 2,
+        );
+        assert_eq!(count, 1, "puzzle not unique on {}x{}", rows, cols);
+    }
+
+    #[test]
+    fn test_generate_valid_across_sizes() {
+        for (rows, cols, diff) in [
+            (6, 6, "easy"),
+            (8, 8, "medium"),
+            (10, 10, "medium"),
+            (10, 10, "hard"),
+            (12, 12, "medium"),
+        ] {
+            let fleet = Fleet::for_size(rows, cols);
+            let sol = generate(rows, cols, diff, &fleet)
+                .unwrap_or_else(|| panic!("generate {}x{} {}", rows, cols, diff));
+            assert_valid_bimaru(&sol, &fleet);
+        }
+    }
 
     #[test]
     fn test_generate_10x10_standard() {

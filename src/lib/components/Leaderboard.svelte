@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { LeaderboardEntry } from '$lib/types/game';
+	import { formatTime } from '$lib/utils/format';
 
 	let {
 		entries,
@@ -8,12 +9,6 @@
 		entries: LeaderboardEntry[];
 		highlightRank?: number | null;
 	} = $props();
-
-	function formatTime(ms: number): string {
-		const secs = Math.floor(ms / 1000);
-		const mins = Math.floor(secs / 60);
-		return `${String(mins).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
-	}
 
 	function formatDate(iso: string): string {
 		const d = new Date(iso);

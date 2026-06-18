@@ -4,8 +4,8 @@
 	import Board from '$lib/games/nonogram/Board.svelte';
 	import Controls from '$lib/games/nonogram/Controls.svelte';
 	import PictureReveal from '$lib/games/nonogram/PictureReveal.svelte';
-	import WinOverlay from '$lib/games/bimaru/WinOverlay.svelte';
-	import Leaderboard from '$lib/games/bimaru/Leaderboard.svelte';
+	import WinOverlay from '$lib/components/WinOverlay.svelte';
+	import Leaderboard from '$lib/components/Leaderboard.svelte';
 	import { listNonogramPictures } from '$lib/services/nonogram-tauri';
 	import { timer } from '$lib/stores/timer.svelte';
 	import { statsStore } from '$lib/stores/stats.svelte';
@@ -13,6 +13,7 @@
 	import type { Difficulty } from '$lib/types/game';
 	import type { PictureMeta } from '$lib/types/nonogram';
 	import type { GridSize } from '$lib/games/nonogram/Controls.svelte';
+	import { formatTime } from '$lib/utils/format';
 
 	onMount(() => timer.reset());
 	onDestroy(() => timer.pause());
@@ -135,7 +136,7 @@
 			const recordedGameId = nonogramState.currentGameId;
 			winTimeout = setTimeout(async () => {
 				winTimeout = null;
-				await statsStore.recordWin('nonogram', gameDifficulty, ms, hints);
+				await statsStore.recordWin('nonogram', gameDifficulty, ms);
 				const rank = await leaderboardStore.addEntry('nonogram', gameDifficulty, gameSize, ms, hints);
 				if (recordedGameId === nonogramState.currentGameId) lastRank = rank;
 			}, 0);
@@ -270,14 +271,6 @@
 		{/if}
 	{/if}
 </div>
-
-<script lang="ts" module>
-	function formatTime(ms: number): string {
-		const secs = Math.floor(ms / 1000);
-		const mins = Math.floor(secs / 60);
-		return `${String(mins).padStart(2, '0')}:${String(secs % 60).padStart(2, '0')}`;
-	}
-</script>
 
 <style>
 	.game-page {

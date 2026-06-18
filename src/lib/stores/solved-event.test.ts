@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mimics exactly what the page win-effect does on a solved puzzle:
-//   await statsStore.recordWin(game, difficulty, ms, hints)
+//   await statsStore.recordWin(game, difficulty, ms)
 //   await leaderboardStore.addEntry(game, difficulty, size, ms, hints)
 // against an in-memory persistence so we can read back what got written.
 const store = new Map<string, unknown>();
@@ -32,7 +32,7 @@ describe('puzzle-solved event persists', () => {
 		const hints = 0;
 
 		// --- this is the win-effect body ---
-		await statsStore.recordWin(game, difficulty, ms, hints);
+		await statsStore.recordWin(game, difficulty, ms);
 		const rank = await leaderboardStore.addEntry(game, difficulty, size, ms, hints);
 
 		// stats persisted under stats:calcudoku
@@ -54,7 +54,7 @@ describe('puzzle-solved event persists', () => {
 
 	it('three calcudoku solves accumulate, fastest ranks first', async () => {
 		for (const ms of [120000, 60000, 90000]) {
-			await statsStore.recordWin('calcudoku', 'medium', ms, 0);
+			await statsStore.recordWin('calcudoku', 'medium', ms);
 			await leaderboardStore.addEntry('calcudoku', 'medium', 4, ms, 0);
 		}
 		expect((store.get('stats:calcudoku') as { gamesWon: number }).gamesWon).toBe(3);

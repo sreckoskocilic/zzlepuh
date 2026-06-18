@@ -7,6 +7,7 @@ import {
 	getNonogramHint,
 	checkNonogramErrors
 } from '$lib/services/nonogram-tauri';
+import { UndoStack } from '$lib/stores/undo-stack.svelte';
 
 interface CellChange {
 	row: number;
@@ -30,9 +31,10 @@ class NonogramState {
 	private gameId = 0;
 	get currentGameId() { return this.gameId; }
 	private isValidating = false;
+	private isHinting = false;
+	private checkSeq = 0;
 	private errorTimeout: ReturnType<typeof setTimeout> | null = null;
-	private history = $state<Move[]>([]);
-	private redoStack = $state<Move[]>([]);
+	private undoStack = new UndoStack<Move>();
 	private stroke: { target: CellState; move: Move } | null = null;
 
 	get isActive(): boolean {
@@ -50,11 +52,11 @@ class NonogramState {
 	}
 
 	get canUndo(): boolean {
-		return this.history.length > 0;
+		return this.undoStack.canUndo;
 	}
 
 	get canRedo(): boolean {
-		return this.redoStack.length > 0;
+		return this.undoStack.canRedo;
 	}
 
 	async startNewGame(difficulty: Difficulty, rows?: number, cols?: number): Promise<void> {
@@ -105,8 +107,7 @@ class NonogramState {
 		this.hintsUsed = 0;
 		this.gameId++;
 		this.isValidating = false;
-		this.history = [];
-		this.redoStack = [];
+		this.undoStack.clear();
 	}
 
 	startStroke(row: number, col: number, mode: 'fill' | 'mark'): void {
@@ -128,8 +129,7 @@ class NonogramState {
 		const { move } = this.stroke;
 		this.stroke = null;
 		if (move.changes.length === 0) return;
-		this.history.push(move);
-		this.redoStack = [];
+		this.undoStack.push(move);
 		this.checkWin();
 	}
 
@@ -142,7 +142,8 @@ class NonogramState {
 	}
 
 	async requestHint(): Promise<boolean> {
-		if (!this.puzzle) return false;
+		if (!this.puzzle || this.isHinting) return false;
+		this.isHinting = true;
 		const capturedGameId = this.gameId;
 
 		try {
@@ -153,24 +154,29 @@ class NonogramState {
 			);
 
 			if (!hint || this.gameId !== capturedGameId) return false;
+			// The deduction was computed against the grid at call time; if the player
+			// has since touched the target cell, applying it would clobber their move.
+			if (this.grid[hint.row][hint.col] !== 'empty') return false;
 
 			const prev = this.grid[hint.row][hint.col];
 			const next: CellState = hint.filled ? 'filled' : 'marked';
-			this.history.push({ changes: [{ row: hint.row, col: hint.col, prev, next }] });
+			this.undoStack.push({ changes: [{ row: hint.row, col: hint.col, prev, next }] });
 			this.grid[hint.row][hint.col] = next;
-			this.redoStack = [];
 			this.hintsUsed++;
 			this.checkWin();
 			return true;
 		} catch (e) {
 			console.error('requestHint failed', e);
 			return false;
+		} finally {
+			this.isHinting = false;
 		}
 	}
 
 	async requestCheck(): Promise<void> {
 		if (!this.puzzle) return;
 		const capturedGameId = this.gameId;
+		const seq = ++this.checkSeq;
 
 		try {
 			const errors = await checkNonogramErrors(
@@ -179,7 +185,9 @@ class NonogramState {
 				this.puzzle.col_clues
 			);
 
-			if (this.gameId !== capturedGameId) return;
+			// Bail if a newer check started (out-of-order resolution would otherwise
+			// overwrite fresher errors with this stale result).
+			if (this.gameId !== capturedGameId || seq !== this.checkSeq) return;
 			if (this.errorTimeout) clearTimeout(this.errorTimeout);
 			this.errorCells = new Set(errors.map(([r, c]) => `${r},${c}`));
 			this.errorTimeout = setTimeout(() => {
@@ -195,23 +203,23 @@ class NonogramState {
 	}
 
 	undo(): void {
-		if (!this.history.length || !this.puzzle) return;
-		const move = this.history.pop()!;
-		for (let i = move.changes.length - 1; i >= 0; i--) {
-			const { row, col, prev } = move.changes[i];
-			this.grid[row][col] = prev;
-		}
-		this.redoStack.push(move);
-		if (this.isComplete) this.isComplete = false;
+		if (!this.puzzle) return;
+		const undone = this.undoStack.undo((move) => {
+			for (let i = move.changes.length - 1; i >= 0; i--) {
+				const { row, col, prev } = move.changes[i];
+				this.grid[row][col] = prev;
+			}
+		});
+		if (undone && this.isComplete) this.isComplete = false;
 	}
 
 	redo(): void {
-		if (!this.redoStack.length || !this.puzzle) return;
-		const move = this.redoStack.pop()!;
-		for (const { row, col, next } of move.changes) {
-			this.grid[row][col] = next;
-		}
-		this.history.push(move);
+		if (!this.puzzle) return;
+		this.undoStack.redo((move) => {
+			for (const { row, col, next } of move.changes) {
+				this.grid[row][col] = next;
+			}
+		});
 	}
 
 	markRemainingInRow(row: number): void {
@@ -224,8 +232,7 @@ class NonogramState {
 			}
 		}
 		if (changes.length === 0) return;
-		this.history.push({ changes });
-		this.redoStack = [];
+		this.undoStack.push({ changes });
 		this.checkWin();
 	}
 
@@ -239,8 +246,7 @@ class NonogramState {
 			}
 		}
 		if (changes.length === 0) return;
-		this.history.push({ changes });
-		this.redoStack = [];
+		this.undoStack.push({ changes });
 		this.checkWin();
 	}
 
@@ -254,8 +260,7 @@ class NonogramState {
 			}
 		}
 		if (changes.length === 0) return;
-		this.history.push({ changes });
-		this.redoStack = [];
+		this.undoStack.push({ changes });
 	}
 
 	clearMarksInCol(col: number): void {
@@ -268,8 +273,7 @@ class NonogramState {
 			}
 		}
 		if (changes.length === 0) return;
-		this.history.push({ changes });
-		this.redoStack = [];
+		this.undoStack.push({ changes });
 	}
 
 	reset(): void {
@@ -279,8 +283,7 @@ class NonogramState {
 		);
 		this.isComplete = false;
 		this.errorCells = new Set();
-		this.history = [];
-		this.redoStack = [];
+		this.undoStack.clear();
 	}
 
 	private checkWin(): void {

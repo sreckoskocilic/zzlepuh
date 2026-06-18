@@ -9,6 +9,36 @@ enum Cell {
     Ship,
 }
 
+/// Backtracking stops once this many solutions are found — we only ever need to
+/// distinguish "unique" (1) from "ambiguous" (≥2).
+pub const UNIQUENESS_LIMIT: usize = 2;
+
+/// The four diagonal neighbours of a cell. Ships may never touch diagonally, so
+/// a ship forces water on all four.
+const DIAGONALS: [(i32, i32); 4] = [(-1, -1), (-1, 1), (1, -1), (1, 1)];
+
+fn fill_row(grid: &mut [Vec<Cell>], r: usize, cols: usize, val: Cell) -> bool {
+    let mut changed = false;
+    for c in 0..cols {
+        if grid[r][c] == Cell::Unknown {
+            grid[r][c] = val;
+            changed = true;
+        }
+    }
+    changed
+}
+
+fn fill_col(grid: &mut [Vec<Cell>], c: usize, rows: usize, val: Cell) -> bool {
+    let mut changed = false;
+    for r in 0..rows {
+        if grid[r][c] == Cell::Unknown {
+            grid[r][c] = val;
+            changed = true;
+        }
+    }
+    changed
+}
+
 #[allow(dead_code)]
 pub fn count_solutions(
     row_clues: &[usize],
@@ -159,84 +189,45 @@ fn propagate(
     loop {
         let mut changed = false;
 
-        for r in 0..rows {
-            if row_clues[r] == 0 {
-                for c in 0..cols {
-                    if grid[r][c] == Cell::Unknown {
-                        grid[r][c] = Cell::Water;
-                        changed = true;
-                    }
-                }
-            }
-        }
-
-        for c in 0..cols {
-            if col_clues[c] == 0 {
-                for r in 0..rows {
-                    if grid[r][c] == Cell::Unknown {
-                        grid[r][c] = Cell::Water;
-                        changed = true;
-                    }
-                }
-            }
-        }
-
+        // Rule: a fully-watered line (clue 0, or its ship quota already met) forces
+        // every remaining Unknown to Water.
         for r in 0..rows {
             let ship_count = (0..cols).filter(|&c| grid[r][c] == Cell::Ship).count();
-            if ship_count == row_clues[r] {
-                for c in 0..cols {
-                    if grid[r][c] == Cell::Unknown {
-                        grid[r][c] = Cell::Water;
-                        changed = true;
-                    }
-                }
+            if row_clues[r] == 0 || ship_count == row_clues[r] {
+                changed |= fill_row(grid, r, cols, Cell::Water);
             }
         }
-
         for c in 0..cols {
             let ship_count = (0..rows).filter(|&r| grid[r][c] == Cell::Ship).count();
-            if ship_count == col_clues[c] {
-                for r in 0..rows {
-                    if grid[r][c] == Cell::Unknown {
-                        grid[r][c] = Cell::Water;
-                        changed = true;
-                    }
-                }
+            if col_clues[c] == 0 || ship_count == col_clues[c] {
+                changed |= fill_col(grid, c, rows, Cell::Water);
             }
         }
 
+        // Rule: when a line's remaining Unknowns exactly fill its outstanding ship
+        // quota, they must all be Ship.
         for r in 0..rows {
             let ship_count = (0..cols).filter(|&c| grid[r][c] == Cell::Ship).count();
             let unknown_count = (0..cols).filter(|&c| grid[r][c] == Cell::Unknown).count();
             let needed = row_clues[r].saturating_sub(ship_count);
             if needed > 0 && unknown_count == needed {
-                for c in 0..cols {
-                    if grid[r][c] == Cell::Unknown {
-                        grid[r][c] = Cell::Ship;
-                        changed = true;
-                    }
-                }
+                changed |= fill_row(grid, r, cols, Cell::Ship);
             }
         }
-
         for c in 0..cols {
             let ship_count = (0..rows).filter(|&r| grid[r][c] == Cell::Ship).count();
             let unknown_count = (0..rows).filter(|&r| grid[r][c] == Cell::Unknown).count();
             let needed = col_clues[c].saturating_sub(ship_count);
             if needed > 0 && unknown_count == needed {
-                for r in 0..rows {
-                    if grid[r][c] == Cell::Unknown {
-                        grid[r][c] = Cell::Ship;
-                        changed = true;
-                    }
-                }
+                changed |= fill_col(grid, c, rows, Cell::Ship);
             }
         }
 
+        // Rule: ships never touch diagonally, so each Ship waters its diagonal neighbours.
         for r in 0..rows {
             for c in 0..cols {
                 if grid[r][c] == Cell::Ship {
-                    for &(dr, dc) in &[(-1i32, -1i32), (-1, 1), (1, -1), (1, 1)] {
+                    for &(dr, dc) in &DIAGONALS {
                         let nr = r as i32 + dr;
                         let nc = c as i32 + dc;
                         if nr >= 0 && nr < rows as i32 && nc >= 0 && nc < cols as i32 {
@@ -351,6 +342,9 @@ fn find_best_unknown(
             let row_needed = row_clues[r].saturating_sub(row_ship);
             let col_needed = col_clues[c].saturating_sub(col_ship);
 
+            // Lower score is branched first. A cell whose row or column has already
+            // met its ship quota is maximally constrained (its value is effectively
+            // forced to Water), so score 0 makes the search resolve it first.
             let constraint_score = if row_needed == 0 || col_needed == 0 {
                 0
             } else {
@@ -458,7 +452,7 @@ fn is_invalid(
             if grid[r][c] != Cell::Ship {
                 continue;
             }
-            for &(dr, dc) in &[(-1i32, -1i32), (-1, 1), (1, -1), (1, 1)] {
+            for &(dr, dc) in &DIAGONALS {
                 let nr = r as i32 + dr;
                 let nc = c as i32 + dc;
                 if nr >= 0 && nr < rows as i32 && nc >= 0 && nc < cols as i32 {
@@ -500,6 +494,37 @@ fn is_valid_complete(
     expected.sort_unstable();
     found.sort_unstable();
     expected == found
+}
+
+/// Validate a fully-decided player grid against clues + fleet: every cell filled,
+/// row/col ship counts match, no diagonal adjacency, and the ship segments match
+/// the fleet. The IPC layer calls this after its shape/bounds guards.
+pub fn is_valid_solution(
+    grid: &[Vec<CellValue>],
+    row_clues: &[usize],
+    col_clues: &[usize],
+    fleet: &Fleet,
+    rows: usize,
+    cols: usize,
+) -> bool {
+    if grid.iter().any(|row| row.iter().any(|&c| c == CellValue::Empty)) {
+        return false;
+    }
+    let cells: Vec<Vec<Cell>> = grid
+        .iter()
+        .map(|row| {
+            row.iter()
+                .map(|&c| if c == CellValue::Ship { Cell::Ship } else { Cell::Water })
+                .collect()
+        })
+        .collect();
+    // `is_invalid` enforces clue counts and the no-diagonal-touch rule; `is_valid_complete`
+    // enforces exact clue equality plus the fleet's ship-length multiset.
+    if is_invalid(&cells, row_clues, col_clues, rows, cols) {
+        return false;
+    }
+    let ship_lengths = expand_fleet(fleet);
+    is_valid_complete(&cells, row_clues, col_clues, &ship_lengths, rows, cols)
 }
 
 fn extract_ship_lengths(grid: &[Vec<Cell>], rows: usize, cols: usize) -> Vec<usize> {

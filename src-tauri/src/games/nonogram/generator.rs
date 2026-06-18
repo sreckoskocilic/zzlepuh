@@ -3,16 +3,40 @@ use rand::Rng;
 use super::solver;
 use super::types::*;
 
+/// Above this side length, full uniqueness checking is too slow; switch to the
+/// hill-climbing repair path instead.
+const LARGE_GRID_THRESHOLD: usize = 12;
+/// Random-grid attempts for the small-grid (full uniqueness) path.
+const SMALL_GRID_ATTEMPTS: usize = 200;
+/// Fresh random-grid restarts for the large-grid hill-climbing path.
+const LARGE_OUTER_ATTEMPTS: usize = 80;
+/// Consecutive rejected flips before abandoning a hill-climb restart.
+const LARGE_STALE_LIMIT: usize = 50;
+
 pub fn generate(
     rows: usize,
     cols: usize,
     difficulty: &str,
 ) -> Option<NonogramSolution> {
-    if rows > 12 || cols > 12 {
+    if rows > LARGE_GRID_THRESHOLD || cols > LARGE_GRID_THRESHOLD {
         generate_large(rows, cols, difficulty)
     } else {
         generate_small(rows, cols, difficulty)
     }
+}
+
+/// Recompute the row and column clues touched by a flip at `(fr, fc)`.
+fn recompute_clues(
+    grid: &[Vec<bool>],
+    fr: usize,
+    fc: usize,
+    rows: usize,
+    row_clues: &mut [Vec<usize>],
+    col_clues: &mut [Vec<usize>],
+) {
+    row_clues[fr] = clues_from_line(&grid[fr]);
+    let col_line: Vec<bool> = (0..rows).map(|r| grid[r][fc]).collect();
+    col_clues[fc] = clues_from_line(&col_line);
 }
 
 /// Small grids: random + full uniqueness check. Fast enough.
@@ -25,7 +49,7 @@ fn generate_small(rows: usize, cols: usize, difficulty: &str) -> Option<Nonogram
 
     let mut rng = rand::rng();
 
-    for _ in 0..200 {
+    for _ in 0..SMALL_GRID_ATTEMPTS {
         let ratio = rng.random_range(fill_ratio.clone());
         let grid = random_grid(rows, cols, ratio, &mut rng);
         let (row_clues, col_clues) = clues_from_grid(&grid);
@@ -66,11 +90,10 @@ fn generate_large(rows: usize, cols: usize, difficulty: &str) -> Option<Nonogram
     };
 
     let total = rows * cols;
-    let max_outer = 80;
     let max_flips = total / 3;
     let mut rng = rand::rng();
 
-    for _ in 0..max_outer {
+    for _ in 0..LARGE_OUTER_ATTEMPTS {
         let ratio = rng.random_range(fill_ratio.clone());
         let mut grid = random_grid(rows, cols, ratio, &mut rng);
         let mut row_clues;
@@ -97,21 +120,16 @@ fn generate_large(rows: usize, cols: usize, difficulty: &str) -> Option<Nonogram
         for _ in 0..max_flips {
             let (fr, fc) = pick_flip_cell(rows, cols, &mut rng);
             grid[fr][fc] = !grid[fr][fc];
-
-            row_clues[fr] = clues_from_line(&grid[fr]);
-            let col_line: Vec<bool> = (0..rows).map(|r| grid[r][fc]).collect();
-            col_clues[fc] = clues_from_line(&col_line);
+            recompute_clues(&grid, fr, fc, rows, &mut row_clues, &mut col_clues);
 
             let (ok, determined) = solver::propagation_progress(&row_clues, &col_clues, rows, cols);
 
             if !ok || determined < best {
-                // Undo the flip
+                // Undo the flip and restore the clues it touched.
                 grid[fr][fc] = !grid[fr][fc];
-                row_clues[fr] = clues_from_line(&grid[fr]);
-                let col_line: Vec<bool> = (0..rows).map(|r| grid[r][fc]).collect();
-                col_clues[fc] = clues_from_line(&col_line);
+                recompute_clues(&grid, fr, fc, rows, &mut row_clues, &mut col_clues);
                 stale += 1;
-                if stale > 50 {
+                if stale > LARGE_STALE_LIMIT {
                     break;
                 }
                 continue;
@@ -193,6 +211,36 @@ fn difficulty_check(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Full validity of a generated nonogram: the published clues are exactly the
+    /// clues derived from the solution, and the puzzle has a unique solution.
+    fn assert_valid_nonogram(sol: &NonogramSolution, rows: usize, cols: usize) {
+        let (row_clues, col_clues) = clues_from_grid(&sol.solution);
+        assert_eq!(row_clues, sol.puzzle.row_clues, "row clues on {}x{}", rows, cols);
+        assert_eq!(col_clues, sol.puzzle.col_clues, "col clues on {}x{}", rows, cols);
+        assert!(
+            solver::has_unique_solution(&sol.puzzle.row_clues, &sol.puzzle.col_clues, rows, cols),
+            "puzzle not unique on {}x{}",
+            rows, cols
+        );
+    }
+
+    #[test]
+    fn test_generate_valid_across_sizes() {
+        // Small-grid hard puzzles aren't always generatable (the difficulty filter
+        // can reject every attempt), so stick to size×difficulty combos the
+        // generator reliably produces — the goal here is oracle strength per size.
+        for (n, diff) in [
+            (5, "easy"),
+            (5, "medium"),
+            (10, "medium"),
+            (15, "medium"),
+            (20, "medium"),
+        ] {
+            let sol = generate(n, n, diff).unwrap_or_else(|| panic!("generate {}x{} {}", n, n, diff));
+            assert_valid_nonogram(&sol, n, n);
+        }
+    }
 
     #[test]
     fn test_generate_5x5_easy() {

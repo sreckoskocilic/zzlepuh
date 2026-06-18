@@ -21,7 +21,7 @@ beforeEach(() => store.clear());
 describe('statsStore', () => {
 	it('records a win: increments played/won/streak and sets best time', async () => {
 		const g = freshGame();
-		await statsStore.recordWin(g, 'easy', 1000, 0);
+		await statsStore.recordWin(g, 'easy', 1000);
 		const s = statsStore.getStats(g);
 		expect(s.gamesPlayed).toBe(1);
 		expect(s.gamesWon).toBe(1);
@@ -38,7 +38,7 @@ describe('statsStore', () => {
 		// win. This must succeed.
 		const g = freshGame();
 		await statsStore.load(g); // caches the reactive proxy, like the mount effect
-		await statsStore.recordWin(g, 'easy', 1000, 0);
+		await statsStore.recordWin(g, 'easy', 1000);
 		const s = statsStore.getStats(g);
 		expect(s.gamesPlayed).toBe(1);
 		expect(s.gamesWon).toBe(1);
@@ -48,8 +48,8 @@ describe('statsStore', () => {
 	it('serializes concurrent writes (no lost update / streak race)', async () => {
 		const g = freshGame();
 		// Fire without awaiting between — they must queue, not race.
-		const p1 = statsStore.recordWin(g, 'easy', 1000, 0);
-		const p2 = statsStore.recordWin(g, 'easy', 2000, 0);
+		const p1 = statsStore.recordWin(g, 'easy', 1000);
+		const p2 = statsStore.recordWin(g, 'easy', 2000);
 		await Promise.all([p1, p2]);
 		const s = statsStore.getStats(g);
 		expect(s.gamesPlayed).toBe(2);
@@ -61,8 +61,8 @@ describe('statsStore', () => {
 
 	it('resets currentStreak on a loss but keeps bestStreak', async () => {
 		const g = freshGame();
-		await statsStore.recordWin(g, 'easy', 1000, 0);
-		await statsStore.recordWin(g, 'easy', 1000, 0);
+		await statsStore.recordWin(g, 'easy', 1000);
+		await statsStore.recordWin(g, 'easy', 1000);
 		await statsStore.recordLoss(g);
 		const s = statsStore.getStats(g);
 		expect(s.gamesPlayed).toBe(3);
@@ -73,10 +73,10 @@ describe('statsStore', () => {
 
 	it('updates best time only when a faster time arrives', async () => {
 		const g = freshGame();
-		await statsStore.recordWin(g, 'medium', 5000, 0);
-		await statsStore.recordWin(g, 'medium', 8000, 0); // slower — must not overwrite
+		await statsStore.recordWin(g, 'medium', 5000);
+		await statsStore.recordWin(g, 'medium', 8000); // slower — must not overwrite
 		expect(statsStore.getStats(g).bestTimeMs.medium).toBe(5000);
-		await statsStore.recordWin(g, 'medium', 3000, 0); // faster — overwrites
+		await statsStore.recordWin(g, 'medium', 3000); // faster — overwrites
 		expect(statsStore.getStats(g).bestTimeMs.medium).toBe(3000);
 		expect(statsStore.getStats(g).byDifficulty.medium.bestTimeMs).toBe(3000);
 	});
@@ -87,8 +87,8 @@ describe('statsStore', () => {
 		const setData = vi.mocked(persistence.setData);
 		// First write rejects; the queue uses .then(fn, fn) so the next still runs.
 		setData.mockRejectedValueOnce(new Error('disk full'));
-		await statsStore.recordWin(g, 'easy', 1000, 0).catch(() => {});
-		await statsStore.recordWin(g, 'easy', 1000, 0);
+		await statsStore.recordWin(g, 'easy', 1000).catch(() => {});
+		await statsStore.recordWin(g, 'easy', 1000);
 		// Second write succeeded; in-memory stats reflect both record attempts.
 		expect(statsStore.getStats(g).gamesPlayed).toBe(2);
 	});

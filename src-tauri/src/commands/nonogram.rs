@@ -68,26 +68,11 @@ pub fn validate_nonogram_solution(
         return false;
     }
 
-    // Blanks count the same whether empty or X-marked; only Filled runs are matched against the clues.
-    for (r, clue) in row_clues.iter().enumerate() {
-        let line: Vec<bool> = player_grid[r].iter().map(|c| *c == CellState::Filled).collect();
-        if &clues_from_line(&line) != clue {
-            return false;
-        }
-    }
-
-    for (c, clue) in col_clues.iter().enumerate() {
-        let line: Vec<bool> = (0..rows).map(|r| player_grid[r][c] == CellState::Filled).collect();
-        if &clues_from_line(&line) != clue {
-            return false;
-        }
-    }
-
-    true
+    solver::is_valid_solution(&player_grid, &row_clues, &col_clues, rows)
 }
 
 #[tauri::command]
-pub fn get_nonogram_hint(
+pub async fn get_nonogram_hint(
     player_grid: Vec<Vec<CellState>>,
     row_clues: Vec<Vec<usize>>,
     col_clues: Vec<Vec<usize>>,
@@ -104,11 +89,17 @@ pub fn get_nonogram_hint(
         return None;
     }
 
-    hint::get_hint(&row_clues, &col_clues, &player_grid, rows, cols)
+    // Off the async reactor: the hint solver can spin to its deadline on a sparse grid.
+    tauri::async_runtime::spawn_blocking(move || {
+        hint::get_hint(&row_clues, &col_clues, &player_grid, rows, cols)
+    })
+    .await
+    .ok()
+    .flatten()
 }
 
 #[tauri::command]
-pub fn check_nonogram_errors(
+pub async fn check_nonogram_errors(
     player_grid: Vec<Vec<CellState>>,
     row_clues: Vec<Vec<usize>>,
     col_clues: Vec<Vec<usize>>,
@@ -125,23 +116,30 @@ pub fn check_nonogram_errors(
         return vec![];
     }
 
-    let Some(solution) = solver::solve_timed(&row_clues, &col_clues, rows, cols, std::time::Duration::from_secs(5)) else {
-        return vec![];
-    };
+    // Off the async reactor: solve_timed can spin up to its 5s deadline.
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(solution) =
+            solver::solve_timed(&row_clues, &col_clues, rows, cols, std::time::Duration::from_secs(5))
+        else {
+            return vec![];
+        };
 
-    let mut errors = Vec::new();
-    for r in 0..rows {
-        for c in 0..cols {
-            if player_grid[r][c] == CellState::Empty {
-                continue;
-            }
-            let player_filled = player_grid[r][c] == CellState::Filled;
-            if player_filled != solution[r][c] {
-                errors.push((r, c));
+        let mut errors = Vec::new();
+        for r in 0..rows {
+            for c in 0..cols {
+                if player_grid[r][c] == CellState::Empty {
+                    continue;
+                }
+                let player_filled = player_grid[r][c] == CellState::Filled;
+                if player_filled != solution[r][c] {
+                    errors.push((r, c));
+                }
             }
         }
-    }
-    errors
+        errors
+    })
+    .await
+    .unwrap_or_default()
 }
 
 #[cfg(test)]
@@ -200,28 +198,28 @@ mod tests {
         assert!(!validate_nonogram_solution(grid, row_clues, col_clues));
     }
 
-    #[test]
-    fn test_hint_returns_something() {
+    #[tokio::test]
+    async fn test_hint_returns_something() {
         let (_, row_clues, col_clues) = make_test_puzzle();
         let player = vec![vec![CellState::Empty; 5]; 5];
-        let hint = get_nonogram_hint(player, row_clues, col_clues);
+        let hint = get_nonogram_hint(player, row_clues, col_clues).await;
         assert!(hint.is_some());
     }
 
-    #[test]
-    fn test_check_errors_correct() {
+    #[tokio::test]
+    async fn test_check_errors_correct() {
         let (solution, row_clues, col_clues) = make_test_puzzle();
         let player: Vec<Vec<CellState>> = solution.iter()
             .map(|row| row.iter().map(|&b| {
                 if b { CellState::Filled } else { CellState::Marked }
             }).collect())
             .collect();
-        let errors = check_nonogram_errors(player, row_clues, col_clues);
+        let errors = check_nonogram_errors(player, row_clues, col_clues).await;
         assert!(errors.is_empty());
     }
 
-    #[test]
-    fn test_check_errors_wrong_cell() {
+    #[tokio::test]
+    async fn test_check_errors_wrong_cell() {
         let (solution, row_clues, col_clues) = make_test_puzzle();
         let mut player: Vec<Vec<CellState>> = solution.iter()
             .map(|row| row.iter().map(|&b| {
@@ -234,7 +232,7 @@ mod tests {
             CellState::Filled
         };
         player[0][0] = flipped;
-        let errors = check_nonogram_errors(player, row_clues, col_clues);
+        let errors = check_nonogram_errors(player, row_clues, col_clues).await;
         assert!(errors.contains(&(0, 0)));
     }
 }
