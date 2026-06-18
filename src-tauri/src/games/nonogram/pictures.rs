@@ -59,7 +59,6 @@ pub fn by_id(id: &str) -> Option<&'static Picture> {
 }
 
 pub const CATALOG: &[Picture] = &[
-    // ---- small ----
     Picture { id: "heart", title: "Srce", art: &[
         "..###...###..",
         ".#####.#####.",
@@ -288,7 +287,6 @@ pub const CATALOG: &[Picture] = &[
         "#.........#",
         ".#########.",
         "...#.#.#..."] },
-    // ---- 25×25 ----
     Picture { id: "owl", title: "Sova", art: &[
         "......###.......###......",
         ".....#####.....#####.....",
