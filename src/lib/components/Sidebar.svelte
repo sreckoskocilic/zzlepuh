@@ -1,9 +1,20 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { getVersion } from '@tauri-apps/api/app';
 	import { themeStore, THEMES } from '$lib/stores/theme.svelte';
 
 	let showThemes = $state(false);
 	let pathname = $derived($page.url.pathname);
+	let version = $state('');
+
+	onMount(async () => {
+		try {
+			version = await getVersion();
+		} catch {
+			/* not in Tauri */
+		}
+	});
 
 	const games = [
 		{ id: 'bimaru', name: 'Bimaru', route: '/bimaru' },
@@ -97,6 +108,9 @@
 				</div>
 			{/if}
 		</div>
+		{#if version}
+			<span class="version" title="Verzija">v{version}</span>
+		{/if}
 	</div>
 </nav>
 
@@ -120,6 +134,17 @@
 		margin-bottom: 1rem;
 		text-decoration: none;
 		transition: background 0.15s;
+	}
+
+	.version {
+		display: block;
+		width: 100%;
+		margin-top: 0.5rem;
+		text-align: center;
+		font-size: 0.72rem;
+		font-variant-numeric: tabular-nums;
+		color: var(--color-text-muted);
+		opacity: 0.7;
 	}
 
 	.logo:hover {
