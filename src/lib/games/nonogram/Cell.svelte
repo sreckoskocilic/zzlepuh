@@ -6,15 +6,15 @@
 		row,
 		col,
 		isError = false,
-		onclick,
-		onrightclick
+		onpaintdown,
+		onpaintenter
 	}: {
 		value: CellState;
 		row: number;
 		col: number;
 		isError?: boolean;
-		onclick: () => void;
-		onrightclick?: () => void;
+		onpaintdown: (row: number, col: number, button: number) => void;
+		onpaintenter: (row: number, col: number) => void;
 	} = $props();
 </script>
 
@@ -24,8 +24,9 @@
 	class:marked={value === 'marked'}
 	class:error={isError}
 	data-testid="cell-{row}-{col}"
-	onclick={onclick}
-	oncontextmenu={(e) => { e.preventDefault(); onrightclick?.(); }}
+	onpointerdown={(e) => { e.preventDefault(); onpaintdown(row, col, e.button); }}
+	onpointerenter={() => onpaintenter(row, col)}
+	oncontextmenu={(e) => e.preventDefault()}
 >
 	{#if value === 'marked'}
 		<svg class="x-mark" viewBox="0 0 12 12" fill="none">

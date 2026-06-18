@@ -33,6 +33,7 @@ class NonogramState {
 	private errorTimeout: ReturnType<typeof setTimeout> | null = null;
 	private history = $state<Move[]>([]);
 	private redoStack = $state<Move[]>([]);
+	private stroke: { target: CellState; move: Move } | null = null;
 
 	get isActive(): boolean {
 		return this.puzzle !== null && !this.isComplete;
@@ -108,26 +109,36 @@ class NonogramState {
 		this.redoStack = [];
 	}
 
-	fillCell(row: number, col: number): void {
+	startStroke(row: number, col: number, mode: 'fill' | 'mark'): void {
 		if (!this.puzzle || this.isComplete) return;
 		const current = this.grid[row][col];
-		const next: CellState = current === 'filled' ? 'empty' : 'filled';
-		this.history.push({ changes: [{ row, col, prev: current, next }] });
-		this.grid[row][col] = next;
+		const on: CellState = mode === 'fill' ? 'filled' : 'marked';
+		const target: CellState = current === on ? 'empty' : on;
+		this.stroke = { target, move: { changes: [] } };
+		this.paint(row, col);
+	}
+
+	extendStroke(row: number, col: number): void {
+		if (!this.stroke || !this.puzzle || this.isComplete) return;
+		this.paint(row, col);
+	}
+
+	endStroke(): void {
+		if (!this.stroke) return;
+		const { move } = this.stroke;
+		this.stroke = null;
+		if (move.changes.length === 0) return;
+		this.history.push(move);
 		this.redoStack = [];
 		this.checkWin();
 	}
 
-	markCell(row: number, col: number): void {
-		if (!this.puzzle || this.isComplete) return;
+	private paint(row: number, col: number): void {
+		if (!this.stroke) return;
 		const current = this.grid[row][col];
-		const next: CellState = current === 'marked' ? 'empty' : 'marked';
-		this.history.push({ changes: [{ row, col, prev: current, next }] });
-		this.grid[row][col] = next;
-		this.redoStack = [];
-		if (this.grid.some((row) => row.some((c) => c === 'filled'))) {
-			this.checkWin();
-		}
+		if (current === this.stroke.target) return;
+		this.stroke.move.changes.push({ row, col, prev: current, next: this.stroke.target });
+		this.grid[row][col] = this.stroke.target;
 	}
 
 	async requestHint(): Promise<boolean> {
@@ -231,6 +242,34 @@ class NonogramState {
 		this.history.push({ changes });
 		this.redoStack = [];
 		this.checkWin();
+	}
+
+	clearMarksInRow(row: number): void {
+		if (!this.puzzle || this.isComplete) return;
+		const changes: CellChange[] = [];
+		for (let c = 0; c < this.puzzle.cols; c++) {
+			if (this.grid[row][c] === 'marked') {
+				changes.push({ row, col: c, prev: 'marked', next: 'empty' });
+				this.grid[row][c] = 'empty';
+			}
+		}
+		if (changes.length === 0) return;
+		this.history.push({ changes });
+		this.redoStack = [];
+	}
+
+	clearMarksInCol(col: number): void {
+		if (!this.puzzle || this.isComplete) return;
+		const changes: CellChange[] = [];
+		for (let r = 0; r < this.puzzle.rows; r++) {
+			if (this.grid[r][col] === 'marked') {
+				changes.push({ row: r, col, prev: 'marked', next: 'empty' });
+				this.grid[r][col] = 'empty';
+			}
+		}
+		if (changes.length === 0) return;
+		this.history.push({ changes });
+		this.redoStack = [];
 	}
 
 	reset(): void {

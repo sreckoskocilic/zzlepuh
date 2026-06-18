@@ -5,19 +5,23 @@
 	let {
 		puzzle,
 		grid,
-		onCellClick,
-		onCellRightClick,
+		onCellPaintDown,
+		onCellPaintEnter,
 		onRowClueFill,
 		onColClueFill,
+		onRowClueClear,
+		onColClueClear,
 		hasError,
 		cellSize = 28
 	}: {
 		puzzle: NonogramPuzzle;
 		grid: CellState[][];
-		onCellClick: (row: number, col: number) => void;
-		onCellRightClick?: (row: number, col: number) => void;
+		onCellPaintDown: (row: number, col: number, button: number) => void;
+		onCellPaintEnter: (row: number, col: number) => void;
 		onRowClueFill?: (row: number) => void;
 		onColClueFill?: (col: number) => void;
+		onRowClueClear?: (row: number) => void;
+		onColClueClear?: (col: number) => void;
 		hasError: (row: number, col: number) => boolean;
 		cellSize?: number;
 	} = $props();
@@ -111,8 +115,8 @@
 						row={gr}
 						col={gc}
 						isError={hasError(gr, gc)}
-						onclick={() => onCellClick(gr, gc)}
-						onrightclick={() => onCellRightClick?.(gr, gc)}
+						onpaintdown={onCellPaintDown}
+						onpaintenter={onCellPaintEnter}
 					/>
 				</div>
 			{:else if inColSum}
@@ -149,6 +153,7 @@
 					class:tb={thickB(i, j)}
 					data-testid="col-clue-{gc}"
 					onclick={() => onColClueFill?.(gc)}
+					oncontextmenu={(e) => { e.preventDefault(); onColClueClear?.(gc); }}
 				>
 					{#if localRow >= offset}
 						<span class="cn">{clue[localRow - offset]}</span>
@@ -168,6 +173,7 @@
 					class:tb={thickB(i, j)}
 					data-testid="row-clue-{gr}"
 					onclick={() => onRowClueFill?.(gr)}
+					oncontextmenu={(e) => { e.preventDefault(); onRowClueClear?.(gr); }}
 				>
 					{#if localCol >= offset}
 						<span class="cn">{clue[localCol - offset]}</span>

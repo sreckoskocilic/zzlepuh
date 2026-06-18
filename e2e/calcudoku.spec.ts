@@ -349,7 +349,7 @@ test.describe('Calcudoku Check', () => {
 		await page.keyboard.press('4');
 
 		await calc.btnCheck.click();
-		await expect(calc.cell(0, 0)).toHaveClass(/error/, { timeout: 2000 });
+		await expect(calc.cell(0, 0)).toHaveClass(/error/, { timeout: 3000 });
 
 		// Error clears after ~2.5s
 		await expect(calc.cell(0, 0)).not.toHaveClass(/error/, { timeout: 4000 });

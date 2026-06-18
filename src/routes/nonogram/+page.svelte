@@ -97,12 +97,16 @@
 		timer.restart();
 	}
 
-	function handleCellClick(row: number, col: number) {
-		nonogramState.fillCell(row, col);
+	function handleCellPaintDown(row: number, col: number, button: number) {
+		nonogramState.startStroke(row, col, button === 2 ? 'mark' : 'fill');
 	}
 
-	function handleCellRightClick(row: number, col: number) {
-		nonogramState.markCell(row, col);
+	function handleCellPaintEnter(row: number, col: number) {
+		nonogramState.extendStroke(row, col);
+	}
+
+	function handleStrokeEnd() {
+		nonogramState.endStroke();
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -125,7 +129,7 @@
 			// out of stats/leaderboard. They just show the reveal.
 			if (nonogramState.isPicture) return;
 			const gameDifficulty = (nonogramState.puzzle?.difficulty ?? difficulty) as Difficulty;
-			const gameSize = gridSize;
+			const gameSize = nonogramState.puzzle?.rows ?? gridSize;
 			const ms = timer.elapsedMs;
 			const hints = nonogramState.hintsUsed;
 			const recordedGameId = nonogramState.currentGameId;
@@ -164,7 +168,7 @@
 	let stats = $derived(statsStore.getStats('nonogram'));
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} onpointerup={handleStrokeEnd} onpointercancel={handleStrokeEnd} />
 
 <div class="game-page">
 	<div class="toolbar">
@@ -211,10 +215,12 @@
 				<Board
 					puzzle={nonogramState.puzzle}
 					grid={nonogramState.grid}
-					onCellClick={handleCellClick}
-					onCellRightClick={handleCellRightClick}
+					onCellPaintDown={handleCellPaintDown}
+					onCellPaintEnter={handleCellPaintEnter}
 					onRowClueFill={(r) => nonogramState.markRemainingInRow(r)}
 					onColClueFill={(c) => nonogramState.markRemainingInCol(c)}
+					onRowClueClear={(r) => nonogramState.clearMarksInRow(r)}
+					onColClueClear={(c) => nonogramState.clearMarksInCol(c)}
 					hasError={(r, c) => nonogramState.hasError(r, c)}
 					{cellSize}
 				/>
