@@ -116,7 +116,7 @@
 
 <style>
 	.sidebar {
-		width: 56px;
+		width: 78px;
 		height: 100vh;
 		background: var(--color-bg-secondary);
 		border-right: 1px solid var(--color-border-cell);
@@ -141,10 +141,11 @@
 		width: 100%;
 		margin-top: 0.5rem;
 		text-align: center;
-		font-size: 0.72rem;
+		font-size: 0.85rem;
+		font-weight: 600;
 		font-variant-numeric: tabular-nums;
-		color: var(--color-text-muted);
-		opacity: 0.7;
+		color: var(--color-text-primary);
+		opacity: 0.9;
 	}
 
 	.logo:hover {
@@ -191,9 +192,9 @@
 	}
 
 	.nav-label {
-		font-size: 0.55rem;
-		font-weight: 500;
-		letter-spacing: 0.02em;
+		font-size: 0.72rem;
+		font-weight: 600;
+		letter-spacing: 0.01em;
 		white-space: nowrap;
 	}
 

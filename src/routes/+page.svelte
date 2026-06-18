@@ -24,11 +24,6 @@
 </script>
 
 <div class="home">
-	<div class="header">
-		<h1>Zzlepuh</h1>
-		<p class="subtitle">Puzzle games</p>
-	</div>
-
 	<div class="game-grid">
 		{#each games as game (game.id)}
 			<a href={game.route} class="game-card">
@@ -79,23 +74,6 @@
 		flex-direction: column;
 		align-items: center;
 		padding: 3rem 1.5rem;
-	}
-
-	.header {
-		text-align: center;
-		margin-bottom: 2.5rem;
-	}
-
-	h1 {
-		font-size: 2.5rem;
-		font-weight: 700;
-		color: var(--color-accent);
-		margin-bottom: 0.3rem;
-	}
-
-	.subtitle {
-		color: var(--color-text-muted);
-		font-size: 0.9rem;
 	}
 
 	.game-grid {
