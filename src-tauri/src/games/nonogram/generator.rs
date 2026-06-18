@@ -44,6 +44,7 @@ fn generate_small(rows: usize, cols: usize, difficulty: &str) -> Option<Nonogram
             row_clues,
             col_clues,
             difficulty: difficulty.to_string(),
+            title: None,
         };
 
         return Some(NonogramSolution {
@@ -150,6 +151,7 @@ fn make_solution(
             row_clues,
             col_clues,
             difficulty: difficulty.to_string(),
+            title: None,
         },
         solution: grid,
     }

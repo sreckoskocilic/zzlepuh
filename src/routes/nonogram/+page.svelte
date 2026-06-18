@@ -3,16 +3,30 @@
 	import { nonogramState } from '$lib/games/nonogram/state.svelte';
 	import Board from '$lib/games/nonogram/Board.svelte';
 	import Controls from '$lib/games/nonogram/Controls.svelte';
+	import PictureReveal from '$lib/games/nonogram/PictureReveal.svelte';
 	import WinOverlay from '$lib/games/bimaru/WinOverlay.svelte';
 	import Leaderboard from '$lib/games/bimaru/Leaderboard.svelte';
+	import { listNonogramPictures } from '$lib/services/nonogram-tauri';
 	import { timer } from '$lib/stores/timer.svelte';
 	import { statsStore } from '$lib/stores/stats.svelte';
 	import { leaderboardStore } from '$lib/stores/leaderboard.svelte';
 	import type { Difficulty } from '$lib/types/game';
+	import type { PictureMeta } from '$lib/types/nonogram';
 	import type { GridSize } from '$lib/games/nonogram/Controls.svelte';
 
 	onMount(() => timer.reset());
 	onDestroy(() => timer.pause());
+
+	let pictures = $state<PictureMeta[]>([]);
+	let lastPictureId = $state<string | null>(null);
+	let revealClosed = $state(false);
+	onMount(async () => {
+		try {
+			pictures = await listNonogramPictures();
+		} catch {
+			/* not in Tauri / no pictures */
+		}
+	});
 
 	let difficulty: Difficulty = $state('medium');
 	let gridSize: GridSize = $state(10);
@@ -41,14 +55,31 @@
 		if (winTimeout) { clearTimeout(winTimeout); winTimeout = null; }
 		// Don't book a loss while a win validation is in flight — the grid is full
 		// and being checked, so abandoning here is a pending win, not a loss.
-		if (nonogramState.isActive && !nonogramState.isValidatingSolution) {
+		// Picture games aren't tracked in stats, so abandoning one isn't a loss.
+		if (nonogramState.isActive && !nonogramState.isValidatingSolution && !nonogramState.isPicture) {
 			statsStore.recordLoss('nonogram');
 		}
 		difficulty = d;
 		gridSize = size;
+		lastPictureId = null;
+		revealClosed = false;
 		winRecordedForGameId = -1;
 		lastRank = null;
 		await nonogramState.startNewGame(d, size, size);
+		timer.restart();
+	}
+
+	async function handlePlayPicture(id: string) {
+		if (nonogramState.isGenerating) return;
+		if (winTimeout) { clearTimeout(winTimeout); winTimeout = null; }
+		if (nonogramState.isActive && !nonogramState.isValidatingSolution && !nonogramState.isPicture) {
+			statsStore.recordLoss('nonogram');
+		}
+		lastPictureId = id;
+		revealClosed = false;
+		winRecordedForGameId = -1;
+		lastRank = null;
+		await nonogramState.startPictureGame(id);
 		timer.restart();
 	}
 
@@ -89,6 +120,9 @@
 		if (nonogramState.isComplete && winRecordedForGameId !== nonogramState.currentGameId) {
 			winRecordedForGameId = nonogramState.currentGameId;
 			timer.pause();
+			// Picture puzzles: variable size + non-standard difficulty → keep them
+			// out of stats/leaderboard. They just show the reveal.
+			if (nonogramState.isPicture) return;
 			const gameDifficulty = (nonogramState.puzzle?.difficulty ?? difficulty) as Difficulty;
 			const gameSize = gridSize;
 			const ms = timer.elapsedMs;
@@ -137,7 +171,9 @@
 			<Controls
 				isGenerating={nonogramState.isGenerating}
 				isActive={nonogramState.isActive}
+				{pictures}
 				onNewGame={handleNewGame}
+				onPlayPicture={handlePlayPicture}
 				onHint={handleHint}
 				onCheck={handleCheck}
 				onReset={handleReset}
@@ -182,7 +218,15 @@
 					{cellSize}
 				/>
 
-				{#if nonogramState.isComplete}
+				{#if nonogramState.isComplete && nonogramState.isPicture && !revealClosed}
+					<PictureReveal
+						grid={nonogramState.grid}
+						title={nonogramState.puzzle.title ?? 'PixelArt'}
+						elapsedMs={timer.elapsedMs}
+						onClose={() => (revealClosed = true)}
+						onAgain={() => lastPictureId && handlePlayPicture(lastPictureId)}
+					/>
+				{:else if nonogramState.isComplete && !nonogramState.isPicture}
 					<WinOverlay
 						hintsUsed={nonogramState.hintsUsed}
 						elapsedMs={timer.elapsedMs}

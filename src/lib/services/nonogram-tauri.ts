@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { NonogramPuzzle, NonogramHint, CellState } from '$lib/types/nonogram';
+import type { NonogramPuzzle, NonogramHint, CellState, PictureMeta } from '$lib/types/nonogram';
 
 export async function generateNonogramPuzzle(
 	difficulty: string,
@@ -7,6 +7,14 @@ export async function generateNonogramPuzzle(
 	cols?: number
 ): Promise<NonogramPuzzle> {
 	return invoke<NonogramPuzzle>('generate_nonogram_puzzle', { difficulty, rows, cols });
+}
+
+export async function listNonogramPictures(): Promise<PictureMeta[]> {
+	return invoke<PictureMeta[]>('list_nonogram_pictures');
+}
+
+export async function generateNonogramPicture(id: string): Promise<NonogramPuzzle> {
+	return invoke<NonogramPuzzle>('generate_nonogram_picture', { id });
 }
 
 export async function validateNonogramSolution(

@@ -1,12 +1,15 @@
 <script lang="ts">
 	import type { Difficulty } from '$lib/types/game';
+	import type { PictureMeta } from '$lib/types/nonogram';
 
 	export type GridSize = 5 | 10 | 15 | 20 | 25;
 
 	let {
 		isGenerating = false,
 		isActive = false,
+		pictures = [],
 		onNewGame,
+		onPlayPicture,
 		onHint,
 		onCheck,
 		onReset,
@@ -15,13 +18,17 @@
 	}: {
 		isGenerating?: boolean;
 		isActive?: boolean;
+		pictures?: PictureMeta[];
 		onNewGame: (d: Difficulty, size: GridSize) => void;
+		onPlayPicture: (id: string) => void;
 		onHint: () => void;
 		onCheck: () => void;
 		onReset: () => void;
 		difficulty?: Difficulty;
 		gridSize?: GridSize;
 	} = $props();
+
+	let pictureId = $state('');
 </script>
 
 <div class="controls">
@@ -45,6 +52,26 @@
 			<option value="medium">Medium</option>
 			<option value="hard">Hard</option>
 		</select>
+
+		{#if pictures.length}
+			<!-- Anonymous: numbered only, so the picker never spoils the image. -->
+			<select
+				class="select"
+				data-testid="picture-select"
+				bind:value={pictureId}
+				onchange={() => {
+					if (pictureId) {
+						onPlayPicture(pictureId);
+						pictureId = '';
+					}
+				}}
+			>
+				<option value="" disabled>🖼 PixelArt…</option>
+				{#each pictures as p, i (p.id)}
+					<option value={p.id}>PixelArt #{i + 1} ({p.cols}×{p.rows})</option>
+				{/each}
+			</select>
+		{/if}
 	</div>
 </div>
 

@@ -28,6 +28,8 @@ pub fn run() {
             commands::nonogram::validate_nonogram_solution,
             commands::nonogram::get_nonogram_hint,
             commands::nonogram::check_nonogram_errors,
+            commands::nonogram::list_nonogram_pictures,
+            commands::nonogram::generate_nonogram_picture,
             commands::calcudoku::generate_calcudoku_puzzle,
             commands::calcudoku::validate_calcudoku_solution,
             commands::calcudoku::get_calcudoku_hint,

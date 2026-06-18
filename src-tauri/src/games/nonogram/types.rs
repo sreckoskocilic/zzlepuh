@@ -15,6 +15,9 @@ pub struct NonogramPuzzle {
     pub row_clues: Vec<Vec<usize>>,
     pub col_clues: Vec<Vec<usize>>,
     pub difficulty: String,
+    /// Picture title — only attached on the win reveal, never during play.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
 }
 
 #[derive(Clone, Debug)]

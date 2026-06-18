@@ -2,6 +2,7 @@ import type { NonogramPuzzle, CellState } from '$lib/types/nonogram';
 import type { Difficulty } from '$lib/types/game';
 import {
 	generateNonogramPuzzle,
+	generateNonogramPicture,
 	validateNonogramSolution,
 	getNonogramHint,
 	checkNonogramErrors
@@ -37,6 +38,11 @@ class NonogramState {
 		return this.puzzle !== null && !this.isComplete;
 	}
 
+	/** True when the current puzzle is a designed picture (difficulty "picture"). */
+	get isPicture(): boolean {
+		return this.puzzle?.difficulty === 'picture';
+	}
+
 	/** True while a win validation is in flight — the grid is full and being checked. */
 	get isValidatingSolution(): boolean {
 		return this.isValidating;
@@ -62,6 +68,26 @@ class NonogramState {
 
 		try {
 			this.loadPuzzle(await generateNonogramPuzzle(difficulty, rows, cols));
+		} catch (e) {
+			this.error = String(e);
+		} finally {
+			this.isGenerating = false;
+		}
+	}
+
+	/** Start a designed picture puzzle by its catalog id. */
+	async startPictureGame(id: string): Promise<void> {
+		if (this.isGenerating) return;
+		this.isGenerating = true;
+		this.error = null;
+		if (this.errorTimeout) {
+			clearTimeout(this.errorTimeout);
+			this.errorTimeout = null;
+		}
+		this.errorCells = new Set();
+
+		try {
+			this.loadPuzzle(await generateNonogramPicture(id));
 		} catch (e) {
 			this.error = String(e);
 		} finally {

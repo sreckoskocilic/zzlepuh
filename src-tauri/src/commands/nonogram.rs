@@ -1,4 +1,35 @@
-use crate::games::nonogram::{generator, hint, solver, types::*};
+use crate::games::nonogram::{generator, hint, pictures, solver, types::*};
+use serde::Serialize;
+
+/// Anonymous catalog entry — no title, so the picker can't spoil the image.
+#[derive(Serialize)]
+pub struct PictureMeta {
+    pub id: String,
+    pub rows: usize,
+    pub cols: usize,
+}
+
+#[tauri::command]
+pub fn list_nonogram_pictures() -> Vec<PictureMeta> {
+    pictures::CATALOG
+        .iter()
+        .filter(|p| p.is_good()) // hide ambiguous (not logic-solvable) ones
+        .map(|p| PictureMeta {
+            id: p.id.to_string(),
+            rows: p.rows(),
+            cols: p.cols(),
+        })
+        .collect()
+}
+
+#[tauri::command]
+pub fn generate_nonogram_picture(id: String) -> Result<NonogramPuzzle, String> {
+    let pic = pictures::by_id(&id).ok_or_else(|| format!("Unknown picture: {}", id))?;
+    if !pic.is_good() {
+        return Err(format!("Picture not solvable by logic: {}", id));
+    }
+    Ok(pic.to_puzzle())
+}
 
 #[tauri::command]
 pub async fn generate_nonogram_puzzle(
