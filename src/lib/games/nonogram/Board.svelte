@@ -24,8 +24,14 @@
 
 	let maxRowClueLen = $derived(Math.max(1, ...puzzle.row_clues.map((c) => c.length)));
 	let maxColClueLen = $derived(Math.max(1, ...puzzle.col_clues.map((c) => c.length)));
-	let totalCols = $derived(maxRowClueLen + puzzle.cols);
-	let totalRows = $derived(maxColClueLen + puzzle.rows);
+	// +1 sum band: leftmost col = row sums, topmost row = col sums.
+	// Grid starts at row (1 + maxColClueLen), col (1 + maxRowClueLen).
+	let totalCols = $derived(1 + maxRowClueLen + puzzle.cols);
+	let totalRows = $derived(1 + maxColClueLen + puzzle.rows);
+
+	function clueSum(clue: number[]): number {
+		return clue.reduce((a, b) => a + b, 0);
+	}
 
 	function isRowSatisfied(r: number): boolean {
 		const line = grid[r];
@@ -60,9 +66,10 @@
 
 	function thickR(i: number, j: number): boolean {
 		if (j === totalCols - 1) return true;
-		if (j === maxRowClueLen - 1) return true;
-		if (j >= maxRowClueLen) {
-			const gc = j - maxRowClueLen;
+		if (j === 0) return true; // after sum col
+		if (j === maxRowClueLen) return true; // after clue band (cols 1..maxRowClueLen)
+		if (j >= 1 + maxRowClueLen) {
+			const gc = j - (1 + maxRowClueLen);
 			return (gc + 1) % 5 === 0 && gc < puzzle.cols - 1;
 		}
 		return false;
@@ -70,9 +77,10 @@
 
 	function thickB(i: number, _j: number): boolean {
 		if (i === totalRows - 1) return true;
-		if (i === maxColClueLen - 1) return true;
-		if (i >= maxColClueLen) {
-			const gr = i - maxColClueLen;
+		if (i === 0) return true; // after sum row
+		if (i === maxColClueLen) return true; // after clue band (rows 1..maxColClueLen)
+		if (i >= 1 + maxColClueLen) {
+			const gr = i - (1 + maxColClueLen);
 			return (gr + 1) % 5 === 0 && gr < puzzle.rows - 1;
 		}
 		return false;
@@ -88,13 +96,15 @@
 >
 	{#each Array(totalRows) as _, i (i)}
 		{#each Array(totalCols) as _, j (j)}
-			{@const inGrid = i >= maxColClueLen && j >= maxRowClueLen}
-			{@const inColClue = i < maxColClueLen && j >= maxRowClueLen}
-			{@const inRowClue = i >= maxColClueLen && j < maxRowClueLen}
+			{@const inGrid = i >= 1 + maxColClueLen && j >= 1 + maxRowClueLen}
+			{@const inColClue = i >= 1 && i < 1 + maxColClueLen && j >= 1 + maxRowClueLen}
+			{@const inRowClue = i >= 1 + maxColClueLen && j >= 1 && j < 1 + maxRowClueLen}
+			{@const inColSum = i === 0 && j >= 1 + maxRowClueLen}
+			{@const inRowSum = j === 0 && i >= 1 + maxColClueLen}
 
 			{#if inGrid}
-				{@const gr = i - maxColClueLen}
-				{@const gc = j - maxRowClueLen}
+				{@const gr = i - (1 + maxColClueLen)}
+				{@const gc = j - (1 + maxRowClueLen)}
 				<div class="bc" class:tr={thickR(i, j)} class:tb={thickB(i, j)}>
 					<Cell
 						value={grid[gr][gc]}
@@ -105,9 +115,30 @@
 						onrightclick={() => onCellRightClick?.(gr, gc)}
 					/>
 				</div>
+			{:else if inColSum}
+				{@const gc = j - (1 + maxRowClueLen)}
+				<div
+					class="bc clue sum"
+					class:tr={thickR(i, j)}
+					class:tb={thickB(i, j)}
+					data-testid="col-sum-{gc}"
+				>
+					<span class="cn">{clueSum(puzzle.col_clues[gc])}</span>
+				</div>
+			{:else if inRowSum}
+				{@const gr = i - (1 + maxColClueLen)}
+				<div
+					class="bc clue sum"
+					class:tr={thickR(i, j)}
+					class:tb={thickB(i, j)}
+					data-testid="row-sum-{gr}"
+				>
+					<span class="cn">{clueSum(puzzle.row_clues[gr])}</span>
+				</div>
 			{:else if inColClue}
-				{@const gc = j - maxRowClueLen}
+				{@const gc = j - (1 + maxRowClueLen)}
 				{@const clue = puzzle.col_clues[gc]}
+				{@const localRow = i - 1}
 				{@const offset = maxColClueLen - clue.length}
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -119,13 +150,14 @@
 					data-testid="col-clue-{gc}"
 					onclick={() => onColClueFill?.(gc)}
 				>
-					{#if i >= offset}
-						<span class="cn">{clue[i - offset]}</span>
+					{#if localRow >= offset}
+						<span class="cn">{clue[localRow - offset]}</span>
 					{/if}
 				</div>
 			{:else if inRowClue}
-				{@const gr = i - maxColClueLen}
+				{@const gr = i - (1 + maxColClueLen)}
 				{@const clue = puzzle.row_clues[gr]}
+				{@const localCol = j - 1}
 				{@const offset = maxRowClueLen - clue.length}
 				<!-- svelte-ignore a11y_click_events_have_key_events -->
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -137,8 +169,8 @@
 					data-testid="row-clue-{gr}"
 					onclick={() => onRowClueFill?.(gr)}
 				>
-					{#if j >= offset}
-						<span class="cn">{clue[j - offset]}</span>
+					{#if localCol >= offset}
+						<span class="cn">{clue[localCol - offset]}</span>
 					{/if}
 				</div>
 			{:else}
@@ -195,6 +227,17 @@
 
 	.clue.satisfied {
 		color: var(--color-accent);
+	}
+
+	.clue.sum {
+		background: #624310;
+		color: #d8dcda;
+	}
+
+	.clue.sum .cn {
+		font-size: calc(var(--clue-font, 0.9rem) * 0.85);
+		font-weight: 700;
+		opacity: 0.85;
 	}
 
 	.clue.clickable {
