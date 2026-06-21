@@ -16,7 +16,10 @@
 	import { formatTime } from '$lib/utils/format';
 
 	onMount(() => timer.reset());
-	onDestroy(() => timer.pause());
+	onDestroy(() => {
+		timer.pause();
+		if (winTimeout) clearTimeout(winTimeout);
+	});
 
 	let pictures = $state<PictureMeta[]>([]);
 	let lastPictureId = $state<string | null>(null);

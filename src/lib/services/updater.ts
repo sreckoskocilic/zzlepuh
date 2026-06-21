@@ -8,8 +8,12 @@ import { info, error } from '@tauri-apps/plugin-log';
  * any error go to the file log only (Windows: %APPDATA%\com.zzlepuh.desktop\logs\).
  * Safe no-op outside the Tauri runtime (web/dev/E2E).
  */
+let running = false;
+
 export async function runSilentUpdate(): Promise<void> {
 	if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return;
+	if (running) return; // re-entrancy guard: never run two update chains at once
+	running = true;
 
 	try {
 		await info('[updater] checking…');
@@ -24,5 +28,7 @@ export async function runSilentUpdate(): Promise<void> {
 		await relaunch();
 	} catch (err) {
 		await error(`[updater] FAILED: ${err instanceof Error ? err.message : String(err)}`);
+	} finally {
+		running = false;
 	}
 }

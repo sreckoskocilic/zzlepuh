@@ -43,7 +43,10 @@ pub fn check_cage_values(values: &[u8], operation: Operation, target: u32) -> bo
     match operation {
         Operation::None => values.len() == 1 && values[0] as u32 == target,
         Operation::Add => values.iter().map(|&v| v as u32).sum::<u32>() == target,
-        Operation::Multiply => values.iter().map(|&v| v as u32).product::<u32>() == target,
+        Operation::Multiply => values
+            .iter()
+            .try_fold(1u32, |acc, &v| acc.checked_mul(v as u32))
+            .is_some_and(|product| product == target),
         Operation::Subtract => {
             if values.len() != 2 {
                 return false;

@@ -39,7 +39,7 @@ class CalcudokuState {
 	error = $state<string | null>(null);
 	errorCells = $state<Set<string>>(new Set());
 	locked = $state<Set<string>>(new Set());
-	private gameId = 0;
+	private gameId = $state(0);
 	get currentGameId() {
 		return this.gameId;
 	}

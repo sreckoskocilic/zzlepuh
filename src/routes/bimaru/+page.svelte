@@ -14,7 +14,10 @@
 	import { formatTime } from '$lib/utils/format';
 
 	onMount(() => timer.reset());
-	onDestroy(() => timer.pause());
+	onDestroy(() => {
+		timer.pause();
+		if (winTimeout) clearTimeout(winTimeout);
+	});
 
 	let difficulty: Difficulty = $state('medium');
 	let gridSize: GridSize = $state(10);

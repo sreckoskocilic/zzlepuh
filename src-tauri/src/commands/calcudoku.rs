@@ -1,11 +1,37 @@
 use crate::games::calcudoku::{generator, hint, solver, types::*};
 
-fn cages_in_bounds(puzzle: &CalcudokuPuzzle) -> bool {
+/// Largest legal cage. The generator never exceeds 4 cells (hard difficulty);
+/// 6 leaves headroom while keeping the solver's per-cage `enumerate_combos`
+/// (O(domain^cells)) cheap. Without this cap a tampered IPC puzzle could ship a
+/// single huge cage and spin the solver effectively forever — the 5s deadline
+/// only guards backtracking, not the propagation pass that runs first.
+const MAX_CAGE_CELLS: usize = 6;
+
+/// Structural validation of a puzzle arriving over IPC, before any solver runs.
+/// Guards size range, cage size, and that the cages form an exact partition of
+/// the grid (every cell covered exactly once — no gaps, no overlaps). Rejecting
+/// malformed shapes here closes the IPC-puzzle DoS and cheat-vector classes.
+fn puzzle_is_valid_shape(puzzle: &CalcudokuPuzzle) -> bool {
     let n = puzzle.size;
-    puzzle
-        .cages
-        .iter()
-        .all(|cage| cage.cells.iter().all(|&(r, c)| r < n && c < n))
+    if !(4..=9).contains(&n) {
+        return false;
+    }
+
+    let mut covered = vec![vec![false; n]; n];
+    for cage in &puzzle.cages {
+        if cage.cells.is_empty() || cage.cells.len() > MAX_CAGE_CELLS {
+            return false;
+        }
+        for &(r, c) in &cage.cells {
+            if r >= n || c >= n || covered[r][c] {
+                return false; // out of bounds or duplicate/overlapping cell
+            }
+            covered[r][c] = true;
+        }
+    }
+
+    // Every cell must belong to exactly one cage.
+    covered.iter().all(|row| row.iter().all(|&v| v))
 }
 
 #[tauri::command]
@@ -36,7 +62,7 @@ pub fn validate_calcudoku_solution(
     if player_grid.iter().any(|row| row.len() != n) {
         return false;
     }
-    if !cages_in_bounds(&puzzle) {
+    if !puzzle_is_valid_shape(&puzzle) {
         return false;
     }
 
@@ -55,7 +81,7 @@ pub async fn get_calcudoku_hint(
     if player_grid.iter().any(|row| row.len() != n) {
         return None;
     }
-    if !cages_in_bounds(&puzzle) {
+    if !puzzle_is_valid_shape(&puzzle) {
         return None;
     }
 
@@ -78,7 +104,7 @@ pub async fn check_calcudoku_errors(
     if player_grid.iter().any(|row| row.len() != n) {
         return vec![];
     }
-    if !cages_in_bounds(&puzzle) {
+    if !puzzle_is_valid_shape(&puzzle) {
         return vec![];
     }
 
