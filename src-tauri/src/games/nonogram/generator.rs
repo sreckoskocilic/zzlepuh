@@ -201,7 +201,13 @@ fn difficulty_check(
                 || col_clues.iter().any(|c| c == &[rows]);
             let has_zero_line = row_clues.iter().any(|c| c == &[0])
                 || col_clues.iter().any(|c| c == &[0]);
+            // Large+easy is dense; `avg_clues <= 2.0` is unreachable, so accept
+            // high fill or generation always returns None.
+            let is_large = rows > LARGE_GRID_THRESHOLD || cols > LARGE_GRID_THRESHOLD;
+            let filled: usize = row_clues.iter().flatten().sum();
+            let fill_fraction = filled as f64 / (rows * cols) as f64;
             has_full_line || has_zero_line || avg_clues <= 2.0
+                || (is_large && fill_fraction >= 0.5)
         }
         "hard" => avg_clues >= 2.5,
         _ => true,
@@ -236,9 +242,22 @@ mod tests {
             (10, "medium"),
             (15, "medium"),
             (20, "medium"),
+            (25, "medium"),
         ] {
             let sol = generate(n, n, diff).unwrap_or_else(|| panic!("generate {}x{} {}", n, n, diff));
             assert_valid_nonogram(&sol, n, n);
+        }
+    }
+
+    /// 25×25 is the max UI size; prove every difficulty generates (not None).
+    #[test]
+    fn test_generate_25x25_max_size_reliable() {
+        for diff in ["easy", "medium", "hard"] {
+            for attempt in 0..5 {
+                let sol = generate(25, 25, diff)
+                    .unwrap_or_else(|| panic!("generate 25x25 {} (attempt {})", diff, attempt));
+                assert_valid_nonogram(&sol, 25, 25);
+            }
         }
     }
 
@@ -304,3 +323,5 @@ mod tests {
     }
 
 }
+
+

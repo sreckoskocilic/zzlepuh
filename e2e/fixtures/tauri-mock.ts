@@ -334,6 +334,21 @@ export async function injectTauriMock(page: Page, opts: MockOptions & { easy?: b
 						return null;
 					}
 
+					if (cmd === 'list_nonogram_pictures') return [{ id: 'pic1', rows: 5, cols: 5 }];
+
+					if (cmd === 'generate_nonogram_picture') {
+						// Solution mirrors the standard nonogram nSol so the shared
+						// validate handler accepts it; difficulty 'picture' drives reveal.
+						return {
+							rows: 5,
+							cols: 5,
+							row_clues: [[2], [1], [3], [1, 1], [1]],
+							col_clues: [[2], [1, 1], [1, 1], [2], [1]],
+							difficulty: 'picture',
+							title: 'Kvadrat'
+						};
+					}
+
 					if (cmd === 'plugin:store|load') return 1;
 					if (cmd === 'plugin:store|get') return [null, false];
 					if (cmd === 'plugin:store|set') return null;

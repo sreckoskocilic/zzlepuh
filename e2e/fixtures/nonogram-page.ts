@@ -14,6 +14,9 @@ export class NonogramPage {
 	readonly emptyState: Locator;
 	readonly winOverlay: Locator;
 	readonly btnPlayAgain: Locator;
+	readonly pictureSelect: Locator;
+	readonly pictureReveal: Locator;
+	readonly pictureTitle: Locator;
 
 	constructor(page: Page) {
 		this.page = page;
@@ -29,6 +32,9 @@ export class NonogramPage {
 		this.emptyState = page.locator('[data-testid="empty-state"]');
 		this.winOverlay = page.locator('[data-testid="win-overlay"]');
 		this.btnPlayAgain = page.locator('[data-testid="btn-play-again"]');
+		this.pictureSelect = page.locator('[data-testid="picture-select"]');
+		this.pictureReveal = page.locator('[data-testid="picture-reveal"]');
+		this.pictureTitle = page.locator('[data-testid="picture-title"]');
 	}
 
 	async goto() {

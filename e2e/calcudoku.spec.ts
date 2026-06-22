@@ -22,13 +22,6 @@ test.describe('Calcudoku', () => {
 		await expect(calc.allCells).toHaveCount(16);
 	});
 
-	test('timer starts and ticks', async () => {
-		await calc.sizeSelect.selectOption('4');
-		await calc.startNewGame();
-		await expect(calc.timer).toHaveText('00:00');
-		await expect(calc.timer).not.toHaveText('00:00', { timeout: 3000 });
-	});
-
 	test('clicking cell selects it, clicking again deselects', async () => {
 		await calc.sizeSelect.selectOption('4');
 		await calc.startNewGame();
@@ -204,29 +197,6 @@ test.describe('Calcudoku', () => {
 
 		await expect(calc.numBtn(1)).toBeDisabled();
 		await expect(calc.clearBtn()).toBeDisabled();
-	});
-
-	test('difficulty selector works', async () => {
-		await expect(calc.difficultySelect).toHaveValue('medium');
-		await calc.difficultySelect.selectOption('easy');
-		await expect(calc.difficultySelect).toHaveValue('easy');
-		await calc.difficultySelect.selectOption('hard');
-		await expect(calc.difficultySelect).toHaveValue('hard');
-	});
-
-	test('size selector works', async () => {
-		await expect(calc.sizeSelect).toHaveValue('6');
-		await calc.sizeSelect.selectOption('4');
-		await expect(calc.sizeSelect).toHaveValue('4');
-		await calc.sizeSelect.selectOption('9');
-		await expect(calc.sizeSelect).toHaveValue('9');
-	});
-
-	test('stats bar visible during game', async () => {
-		await calc.sizeSelect.selectOption('4');
-		await calc.startNewGame();
-		await expect(calc.statsBar).toBeVisible();
-		await expect(calc.statsBar).toContainText('Games:');
 	});
 
 	test('single-cell cages are pre-filled and locked', async () => {

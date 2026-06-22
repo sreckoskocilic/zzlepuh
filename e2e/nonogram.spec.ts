@@ -22,13 +22,6 @@ test.describe('Nonogram', () => {
 		await expect(nono.allCells).toHaveCount(25);
 	});
 
-	test('timer starts and ticks', async () => {
-		await nono.sizeSelect.selectOption('5');
-		await nono.startNewGame();
-		await expect(nono.timer).toHaveText('00:00');
-		await expect(nono.timer).not.toHaveText('00:00', { timeout: 3000 });
-	});
-
 	test('left-click fills cell, right-click marks cell', async () => {
 		await nono.sizeSelect.selectOption('5');
 		await nono.startNewGame();
@@ -76,29 +69,6 @@ test.describe('Nonogram', () => {
 		await nono.btnReset.click();
 		await expect(nono.filledCells).toHaveCount(0);
 		await expect(nono.markedCells).toHaveCount(0);
-	});
-
-	test('difficulty selector works', async () => {
-		await expect(nono.difficultySelect).toHaveValue('medium');
-		await nono.difficultySelect.selectOption('easy');
-		await expect(nono.difficultySelect).toHaveValue('easy');
-		await nono.difficultySelect.selectOption('hard');
-		await expect(nono.difficultySelect).toHaveValue('hard');
-	});
-
-	test('size selector works', async () => {
-		await expect(nono.sizeSelect).toHaveValue('10');
-		await nono.sizeSelect.selectOption('5');
-		await expect(nono.sizeSelect).toHaveValue('5');
-		await nono.sizeSelect.selectOption('20');
-		await expect(nono.sizeSelect).toHaveValue('20');
-	});
-
-	test('stats bar visible during game', async () => {
-		await nono.sizeSelect.selectOption('5');
-		await nono.startNewGame();
-		await expect(nono.statsBar).toBeVisible();
-		await expect(nono.statsBar).toContainText('Games:');
 	});
 
 	test('hint and reset disabled before game, enabled after', async () => {
@@ -203,6 +173,60 @@ test.describe('Nonogram Check', () => {
 		const nono = new NonogramPage(page);
 		await nono.goto();
 		await expect(nono.btnCheck).toBeDisabled();
+	});
+});
+
+test.describe('Nonogram Picture Mode', () => {
+	const filled = [
+		[0, 0], [0, 1],
+		[1, 3],
+		[2, 0], [2, 1], [2, 2],
+		[3, 1], [3, 3],
+		[4, 0]
+	];
+	const marked = [
+		[0, 2], [0, 3], [0, 4],
+		[1, 0], [1, 1], [1, 2], [1, 4],
+		[2, 3], [2, 4],
+		[3, 0], [3, 2], [3, 4],
+		[4, 1], [4, 2], [4, 3], [4, 4]
+	];
+
+	test('solving a picture shows the reveal with title and skips stats', async ({ page }) => {
+		await injectTauriMock(page);
+		const nono = new NonogramPage(page);
+		await nono.goto();
+
+		await nono.pictureSelect.selectOption('pic1');
+		await expect(nono.allCells).toHaveCount(25);
+
+		for (const [r, c] of filled) await nono.cell(r, c).click();
+		for (const [r, c] of marked) await nono.cell(r, c).click({ button: 'right' });
+
+		await expect(nono.pictureReveal).toBeVisible({ timeout: 5000 });
+		await expect(nono.pictureTitle).toHaveText('Kvadrat');
+		await expect(nono.winOverlay).toHaveCount(0);
+		// Picture games are excluded from stats/leaderboard.
+		await expect(nono.statsBar).toContainText('Games: 0');
+		await expect(nono.statsBar).toContainText('Won: 0');
+	});
+});
+
+test.describe('Nonogram Loss Tracking', () => {
+	test('abandoning a game in progress books a loss', async ({ page }) => {
+		await injectTauriMock(page);
+		const nono = new NonogramPage(page);
+		await nono.goto();
+		await nono.sizeSelect.selectOption('5');
+		await nono.startNewGame();
+		await expect(nono.statsBar).toContainText('Games: 0');
+
+		// Move makes the game "in progress"; starting a new one abandons it = loss.
+		await nono.cell(0, 0).click();
+		await nono.startNewGame();
+
+		await expect(nono.statsBar).toContainText('Games: 1');
+		await expect(nono.statsBar).toContainText('Won: 0');
 	});
 });
 

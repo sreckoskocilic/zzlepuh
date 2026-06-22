@@ -195,10 +195,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_hint_returns_hint() {
-        let (_, row_clues, col_clues, fleet, hints) = make_test_puzzle();
+        let (solution, row_clues, col_clues, fleet, hints) = make_test_puzzle();
         let player_grid = vec![vec![CellValue::Empty; 10]; 10];
         let result = get_bimaru_hint(player_grid, row_clues, col_clues, fleet, hints).await;
-        assert!(result.is_some());
+        let h = result.expect("hint on empty grid");
+        assert_eq!(h.value, solution[h.row][h.col], "hint value must match solution");
     }
 
     #[tokio::test]

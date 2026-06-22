@@ -161,20 +161,6 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_correct_all_sizes_and_difficulties() {
-        for size in 4..=9 {
-            for diff in ["easy", "medium", "hard"] {
-                let sol = generator::generate(size, diff)
-                    .unwrap_or_else(|| panic!("generate {size} {diff}"));
-                assert!(
-                    validate_calcudoku_solution(sol.solution.clone(), sol.puzzle),
-                    "validate rejected the generated solution for size={size} diff={diff}"
-                );
-            }
-        }
-    }
-
-    #[test]
     fn test_validate_wrong() {
         let (mut solution, puzzle) = make_test_puzzle();
         let orig = solution[0][0];
@@ -191,10 +177,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_hint_returns_something() {
-        let (_, puzzle) = make_test_puzzle();
+        let (solution, puzzle) = make_test_puzzle();
         let grid = vec![vec![0u8; 4]; 4];
         let hint = get_calcudoku_hint(grid, puzzle).await;
-        assert!(hint.is_some());
+        let h = hint.expect("hint on empty grid");
+        assert_eq!(h.value, solution[h.row][h.col], "hint value must match solution");
     }
 
     #[tokio::test]

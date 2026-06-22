@@ -5321,7 +5321,7 @@ checksum = "b8848ee67ecc8aedbaf3e4122217aff892639231befc6a1b58d29fff4c2cabaa"
 
 [[package]]
 name = "zzlepuh"
-version = "1.5.1"
+version = "1.5.2"
 dependencies = [
  "log",
  "rand 0.9.4",
@@ -5334,6 +5334,5 @@ dependencies = [
  "tauri-plugin-store",
  "tauri-plugin-updater",
  "tauri-plugin-window-state",
- "thiserror 2.0.18",
  "tokio",
 ]

@@ -72,6 +72,7 @@ mod tests {
             10,
         );
 
-        assert!(hint.is_some(), "Should produce a hint on a fresh puzzle");
+        let h = hint.expect("Should produce a hint on a fresh puzzle");
+        assert_eq!(h.value, sol.solution[h.row][h.col], "hint value must match solution");
     }
 }

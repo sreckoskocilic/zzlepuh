@@ -200,10 +200,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_hint_returns_something() {
-        let (_, row_clues, col_clues) = make_test_puzzle();
+        let (solution, row_clues, col_clues) = make_test_puzzle();
         let player = vec![vec![CellState::Empty; 5]; 5];
         let hint = get_nonogram_hint(player, row_clues, col_clues).await;
-        assert!(hint.is_some());
+        let h = hint.expect("hint on empty grid");
+        assert_eq!(h.filled, solution[h.row][h.col], "hint filled must match solution");
     }
 
     #[tokio::test]
@@ -216,6 +217,35 @@ mod tests {
             .collect();
         let errors = check_nonogram_errors(player, row_clues, col_clues).await;
         assert!(errors.is_empty());
+    }
+
+    #[test]
+    fn test_list_pictures_nonempty_and_resolvable() {
+        let list = list_nonogram_pictures();
+        assert!(!list.is_empty());
+        for meta in &list {
+            let pic = pictures::by_id(&meta.id).expect("listed id must resolve");
+            assert!(pic.is_good(), "listed picture must be solvable: {}", meta.id);
+            assert_eq!(meta.rows, pic.rows());
+            assert_eq!(meta.cols, pic.cols());
+        }
+    }
+
+    #[test]
+    fn test_generate_picture_unknown_id_errors() {
+        assert!(generate_nonogram_picture("no_such_picture".into()).is_err());
+    }
+
+    #[test]
+    fn test_generate_picture_returns_titled_puzzle_with_matching_clues() {
+        let id = list_nonogram_pictures()[0].id.clone();
+        let puzzle = generate_nonogram_picture(id.clone()).expect("good id must generate");
+        assert_eq!(puzzle.difficulty, "picture");
+        assert!(puzzle.title.is_some());
+        let pic = pictures::by_id(&id).unwrap();
+        let (row_clues, col_clues) = clues_from_grid(&pic.cells());
+        assert_eq!(puzzle.row_clues, row_clues);
+        assert_eq!(puzzle.col_clues, col_clues);
     }
 
     #[tokio::test]
