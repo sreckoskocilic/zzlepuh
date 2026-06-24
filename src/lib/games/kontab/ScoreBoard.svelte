@@ -11,7 +11,9 @@
 	const label = (p: number) => kontabNames.label(p);
 
 	const leader = $derived(
-		game.scores.reduce((worst, s, i, arr) => (s > arr[worst] ? i : worst), 0)
+		game.phase.kind === 'game_over'
+			? game.phase.loser
+			: game.scores.reduce((worst, s, i, arr) => (s > arr[worst] ? i : worst), 0)
 	);
 </script>
 

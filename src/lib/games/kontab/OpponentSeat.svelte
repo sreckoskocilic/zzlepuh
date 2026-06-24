@@ -11,9 +11,20 @@
 
 	let { game, seat, thinking, position }: Props = $props();
 
+	const MAX_SLOTS = 6;
+
 	const count = $derived(game.hands[seat].length);
 	const active = $derived(game.current === seat && game.phase.kind === 'playing');
 	const vertical = $derived(position !== 'top');
+
+	// Fixed-width fan: removed cards drop from the outer edges, alternating
+	// left then right, so surviving backs keep their slot and never shuffle.
+	const removed = $derived(Math.max(0, MAX_SLOTS - count));
+	const leftGone = $derived(Math.ceil(removed / 2));
+	const rightGone = $derived(Math.floor(removed / 2));
+	const slots = $derived(
+		Array.from({ length: MAX_SLOTS }, (_, i) => i >= leftGone && i < MAX_SLOTS - rightGone)
+	);
 </script>
 
 <div class="seat seat-{position}" class:active data-testid={`opponent-${seat}`}>
@@ -25,8 +36,8 @@
 		{/if}
 	</div>
 	<div class="fan" class:vertical>
-		{#each Array(count) as _, i (i)}
-			<div class="fcard"></div>
+		{#each slots as filled, i (i)}
+			<div class="fcard" class:ghost={!filled}></div>
 		{/each}
 		{#if count === 0}<span class="empty">—</span>{/if}
 	</div>
@@ -55,6 +66,7 @@
 
 	/* nameplate: name + BIG card-count, above the hand */
 	.plate {
+		position: relative;
 		display: inline-flex;
 		align-items: baseline;
 		gap: 0.6rem;
@@ -90,12 +102,20 @@
 		font-variant-numeric: tabular-nums;
 	}
 
+	/* absolute so toggling 'misli…' never resizes the plate (which would resize
+	   the side grid column and drift the whole center column) */
 	.lbl {
+		position: absolute;
+		top: calc(100% + 2px);
+		left: 50%;
+		transform: translateX(-50%);
 		font-size: clamp(11px, 1.6vmin, 15px);
 		color: var(--color-accent);
+		white-space: nowrap;
 	}
 
 	.fan {
+		position: relative;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -143,7 +163,15 @@
 			0 1px 3px rgba(0, 0, 0, 0.5);
 	}
 
+	.ghost {
+		visibility: hidden;
+	}
+
 	.empty {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
 		color: var(--color-text-muted);
 		font-size: 1rem;
 	}

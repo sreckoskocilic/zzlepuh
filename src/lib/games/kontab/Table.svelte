@@ -32,6 +32,9 @@
 		align-items: center;
 		/* up to 6 cards per row -> two rows hold a full 12-card talon */
 		max-width: calc(var(--lg-w, 120px) * 6 + 6 * 0.6vmin);
+		/* same as max-width: a constant box so adding/removing table cards never
+		   resizes the center column (keeps hand + seats from drifting) */
+		min-width: calc(var(--lg-w, 120px) * 6 + 6 * 0.6vmin);
 		min-height: calc(var(--lg-h, 174px) * 0.7);
 		margin: 0 auto;
 		padding: 1vmin;

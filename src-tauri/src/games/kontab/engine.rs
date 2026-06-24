@@ -275,13 +275,20 @@ pub fn apply_move(state: &GameState, card: &Card) -> Result<ApplyResult, String>
         state
             .table
             .retain(|c| !captured_cards.iter().any(|cap| cap == c));
+        let mut pts = card_points(card);
+        for c in &captured_cards {
+            pts += card_points(c);
+        }
         state.piles[p].extend(captured_cards.iter().copied());
         state.piles[p].push(*card);
         state.last_capturer = Some(p);
         if state.table.is_empty() {
             state.tablas[p] += 1;
             is_tabla = true;
+            pts += 10;
         }
+        state.deal_scores[p] += pts;
+        state.scores[p] += pts;
     }
 
     let mut event = MoveEvent {
@@ -292,6 +299,14 @@ pub fn apply_move(state: &GameState, card: &Card) -> Result<ApplyResult, String>
         deal_complete: false,
         deal_breakdown: None,
     };
+
+    if let Some(loser) = first_to_cross(&state.scores, state.target) {
+        state.phase = Phase::GameOver { loser };
+        return Ok(ApplyResult {
+            state,
+            events: vec![event],
+        });
+    }
 
     let hands_empty = state.hands.iter().all(|h| h.is_empty());
     if hands_empty {
@@ -317,17 +332,20 @@ fn finish_deal(state: &mut GameState, fallback: usize) -> Vec<ScoreBreakdown> {
     if !state.table.is_empty() {
         let taker = state.last_capturer.unwrap_or(fallback);
         let leftover = std::mem::take(&mut state.table);
+        let pts: u32 = leftover.iter().map(card_points).sum();
         state.piles[taker].extend(leftover);
+        state.deal_scores[taker] += pts;
+        state.scores[taker] += pts;
+    }
+
+    if let Some(leader) = most_cards_leader(&state.piles) {
+        state.deal_scores[leader] += 3;
+        state.scores[leader] += 3;
     }
 
     let breakdown = score_deal(state);
-    for (p, b) in breakdown.iter().enumerate() {
-        state.deal_scores[p] = b.total;
-        state.scores[p] += b.total;
-    }
 
-    if state.scores.iter().any(|&s| s >= state.target) {
-        let loser = argmax(&state.scores);
+    if let Some(loser) = first_to_cross(&state.scores, state.target) {
         state.phase = Phase::GameOver { loser };
     } else {
         state.phase = Phase::DealComplete;
@@ -359,11 +377,8 @@ pub fn score_deal(state: &GameState) -> Vec<ScoreBreakdown> {
         out[p].tablas = state.tablas[p] * 10;
     }
 
-    let counts: Vec<usize> = state.piles.iter().map(|p| p.len()).collect();
-    let max_count = *counts.iter().max().unwrap_or(&0);
-    let leaders: Vec<usize> = (0..n).filter(|&p| counts[p] == max_count).collect();
-    if max_count > 0 && leaders.len() == 1 {
-        out[leaders[0]].most_cards = 3;
+    if let Some(leader) = most_cards_leader(&state.piles) {
+        out[leader].most_cards = 3;
     }
 
     for b in out.iter_mut() {
@@ -372,14 +387,36 @@ pub fn score_deal(state: &GameState) -> Vec<ScoreBreakdown> {
     out
 }
 
-fn argmax(scores: &[u32]) -> usize {
-    let mut best = 0;
-    for i in 1..scores.len() {
-        if scores[i] > scores[best] {
-            best = i;
-        }
+fn card_points(card: &Card) -> u32 {
+    let mut pts = 0;
+    if card.is_honor() {
+        pts += 1;
     }
-    best
+    if card.is_ten_of_diamonds() {
+        pts += 1;
+    }
+    if card.is_two_of_clubs() {
+        pts += 1;
+    }
+    pts
+}
+
+fn most_cards_leader(piles: &[Vec<Card>]) -> Option<usize> {
+    let counts: Vec<usize> = piles.iter().map(|p| p.len()).collect();
+    let max_count = *counts.iter().max().unwrap_or(&0);
+    if max_count == 0 {
+        return None;
+    }
+    let leaders: Vec<usize> = (0..piles.len()).filter(|&p| counts[p] == max_count).collect();
+    if leaders.len() == 1 {
+        Some(leaders[0])
+    } else {
+        None
+    }
+}
+
+fn first_to_cross(scores: &[u32], target: u32) -> Option<usize> {
+    (0..scores.len()).find(|&p| scores[p] >= target)
 }
 
 #[cfg(test)]
@@ -547,6 +584,59 @@ mod tests {
         let b = score_deal(&s);
         assert_eq!(b[0].most_cards, 0);
         assert_eq!(b[1].most_cards, 0);
+    }
+
+    #[test]
+    fn capture_crosses_target_ends_game_immediately() {
+        let mut s = new_game(2, 51, Some(1));
+        s.scores = vec![49, 0];
+        s.deal_scores = vec![0, 0];
+        s.hands[0] = vec![c(12, Suit::Spades)];
+        s.hands[1] = vec![c(3, Suit::Diamonds)];
+        s.table = vec![c(12, Suit::Hearts), c(5, Suit::Clubs)];
+        s.current = 0;
+        let r = apply_move(&s, &c(12, Suit::Spades)).unwrap();
+        assert_eq!(r.state.scores[0], 51);
+        assert_eq!(r.state.deal_scores[0], 2);
+        assert_eq!(r.state.phase, Phase::GameOver { loser: 0 });
+        assert!(!r.events[0].deal_complete);
+    }
+
+    #[test]
+    fn deal_scores_match_score_deal_with_leftover() {
+        let mut s = new_game(2, 101, Some(1));
+        s.deck = Vec::new();
+        s.piles = vec![Vec::new(); 2];
+        s.deal_scores = vec![0; 2];
+        s.tablas = vec![0; 2];
+        s.scores = vec![0; 2];
+        s.last_capturer = None;
+        s.table = vec![c(1, Suit::Hearts)];
+        s.hands[0] = vec![c(1, Suit::Spades)];
+        s.hands[1] = vec![c(2, Suit::Clubs)];
+        s.current = 0;
+
+        let r0 = apply_move(&s, &c(1, Suit::Spades)).unwrap();
+        assert_eq!(r0.state.phase, Phase::Playing);
+        let r1 = apply_move(&r0.state, &c(2, Suit::Clubs)).unwrap();
+
+        assert_eq!(r1.state.phase, Phase::DealComplete);
+        let breakdown = score_deal(&r1.state);
+        for p in 0..2 {
+            assert_eq!(r1.state.deal_scores[p], breakdown[p].total, "player {p}");
+        }
+        assert_eq!(r1.state.deal_scores[0], 16);
+        assert_eq!(r1.state.scores[0], 16);
+        assert_eq!(r1.state.deal_scores[1], 0);
+    }
+
+    #[test]
+    fn first_to_cross_breaks_ties_by_seat_order() {
+        assert_eq!(first_to_cross(&[20, 30], 51), None);
+        assert_eq!(first_to_cross(&[60, 30], 51), Some(0));
+        assert_eq!(first_to_cross(&[30, 55], 51), Some(1));
+        assert_eq!(first_to_cross(&[53, 58], 51), Some(0));
+        assert_eq!(first_to_cross(&[40, 60, 55], 51), Some(1));
     }
 
     #[test]

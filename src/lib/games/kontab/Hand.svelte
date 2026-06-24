@@ -34,6 +34,9 @@
 		justify-content: center;
 		align-items: flex-end;
 		padding: 0.25rem;
+		/* lock the box to a full 6-card span so playing a card recenters the
+		   cards inside without resizing the column (keeps talon + seats still) */
+		min-width: calc(var(--lg-w, 120px) * 4.9);
 	}
 
 	/* flat parallel row, ~22% overlap, scales with --lg-w from parent context */
