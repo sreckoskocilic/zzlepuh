@@ -29,19 +29,20 @@
 <style>
 	.hand {
 		display: flex;
-		flex-wrap: wrap;
-		gap: 0.6rem;
-		justify-content: center;
-		padding: 0.5rem;
-		min-height: 184px;
-	}
-
-	.hand.overlap {
 		flex-wrap: nowrap;
 		gap: 0;
+		justify-content: center;
+		align-items: flex-end;
+		padding: 0.25rem;
 	}
 
-	.hand.overlap > :global(* + *) {
-		margin-left: -36px;
+	/* flat parallel row, ~22% overlap, scales with --lg-w from parent context */
+	.hand > :global(* + *) {
+		margin-left: calc(var(--lg-w, 120px) * -0.22);
+	}
+
+	.hand :global(.card.clickable:hover) {
+		transform: translateY(-22px) scale(1.04);
+		z-index: 20;
 	}
 </style>

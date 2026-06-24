@@ -1,6 +1,6 @@
 [package]
 name = "zzlepuh"
-version = "1.6.0"
+version = "1.6.1"
 description = "Zzlepuh — Desktop Puzzle Game Platform"
 authors = ["Srecko Skocilic"]
 license = ""

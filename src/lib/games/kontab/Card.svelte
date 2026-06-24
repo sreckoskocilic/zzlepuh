@@ -73,11 +73,15 @@
 		width: 100%;
 		height: 100%;
 		object-fit: contain;
+		/* kill stark white on photo cards -> warm cream, less glare on dark bg */
+		filter: brightness(0.93) saturate(1.06) sepia(0.16);
 	}
 
+	/* lg is the in-play size; parent context can override via --lg-w/--lg-h
+	   (hand vs talon scale differently). Defaults keep capture-flash etc. fixed. */
 	.card.lg {
-		width: 120px;
-		height: 174px;
+		width: var(--lg-w, 120px);
+		height: var(--lg-h, 174px);
 		border-radius: 10px;
 	}
 
@@ -109,7 +113,7 @@
 	}
 
 	.card.highlight img {
-		filter: brightness(0.45);
+		filter: brightness(0.5) saturate(1.06) sepia(0.16);
 	}
 
 	.card.dim {

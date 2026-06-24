@@ -46,11 +46,11 @@
 	table {
 		border-collapse: collapse;
 		width: 100%;
-		font-size: 1rem;
+		font-size: clamp(0.95rem, 1.9vmin, 1.25rem);
 	}
 
 	td {
-		padding: 0.44rem 0.8rem;
+		padding: 0.5rem 0.9rem;
 		text-align: left;
 		color: var(--color-text-primary);
 		border: 1px solid rgba(255, 255, 255, 0.22);
@@ -95,7 +95,9 @@
 		font-weight: 700;
 	}
 
+	/* leader highlighted gold (positive), not red */
 	tbody tr.danger td {
-		color: #e06666;
+		color: #e6c469;
+		font-weight: 700;
 	}
 </style>

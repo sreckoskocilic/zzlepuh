@@ -14,28 +14,19 @@
 	const count = $derived(game.hands[seat].length);
 	const active = $derived(game.current === seat && game.phase.kind === 'playing');
 	const vertical = $derived(position !== 'top');
-	const overlap = $derived(game.num_players >= 3);
-
-	function cardStyle(i: number): string {
-		if (vertical) {
-			return 'transform: rotate(90deg);' + (overlap && i > 0 ? ' margin-top: -90px;' : '');
-		}
-		return overlap && i > 0 ? 'margin-left: -36px;' : '';
-	}
 </script>
 
-<div
-	class="seat seat-{position}"
-	class:active
-	data-testid={`opponent-${seat}`}
->
-	<div class="name">
-		{kontabNames.label(seat)}
-		{#if active && thinking}<span class="dots" data-testid={`opponent-${seat}-thinking`}>misli…</span>{/if}
+<div class="seat seat-{position}" class:active data-testid={`opponent-${seat}`}>
+	<div class="plate" class:active>
+		<span class="nm">{kontabNames.label(seat)}</span>
+		<span class="cnt" data-testid={`opponent-${seat}-count`}>{count}</span>
+		{#if active && thinking}
+			<span class="lbl" data-testid={`opponent-${seat}-thinking`}>misli…</span>
+		{/if}
 	</div>
-	<div class="fan" class:vertical class:overlap>
+	<div class="fan" class:vertical>
 		{#each Array(count) as _, i (i)}
-			<div class="fcard" style={cardStyle(i)}></div>
+			<div class="fcard"></div>
 		{/each}
 		{#if count === 0}<span class="empty">—</span>{/if}
 	</div>
@@ -43,77 +34,99 @@
 
 <style>
 	.seat {
-		position: absolute;
+		/* card-back size, scales with window */
+		--opp-w: clamp(52px, 9vmin, 124px);
+		--opp-h: calc(var(--opp-w) * 1.452);
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.3rem;
-		padding: 0.4rem 0.6rem;
-		border-radius: 10px;
-		border: 1px solid transparent;
-	}
-
-	.seat.active {
-		border-color: var(--color-accent);
-		background: var(--color-accent-dim);
+		gap: 0.5vmin;
 	}
 
 	.seat-top {
-		top: 0;
-		left: 50%;
-		transform: translateX(-50%);
+		grid-area: top;
 	}
-
 	.seat-left {
-		left: 0;
-		top: 50%;
-		transform: translateY(-50%);
+		grid-area: left;
 	}
-
 	.seat-right {
-		right: 0;
-		top: 50%;
-		transform: translateY(-50%);
+		grid-area: right;
 	}
 
-	.name {
-		font-size: 0.9rem;
-		font-weight: 600;
+	/* nameplate: name + BIG card-count, above the hand */
+	.plate {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 0.6rem;
+		padding: 0.4rem 0.9rem;
+		border-radius: 12px;
+		background: color-mix(in srgb, var(--color-bg) 55%, transparent);
+		border: 1px solid var(--color-border-cell);
+		white-space: nowrap;
+	}
+
+	.plate.active {
+		border-color: var(--color-accent);
+		background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+		box-shadow: 0 0 18px -4px color-mix(in srgb, var(--color-accent) 55%, transparent);
+	}
+
+	.nm {
+		font-size: clamp(14px, 2.1vmin, 22px);
+		font-weight: 700;
 		color: var(--color-text-primary);
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
+		letter-spacing: 0.03em;
 	}
 
-	.dots {
-		font-size: 0.72rem;
-		font-weight: 400;
+	.plate.active .nm {
+		color: var(--color-accent);
+	}
+
+	.cnt {
+		font-size: clamp(16px, 2.4vmin, 27px);
+		font-weight: 600;
+		line-height: 1;
+		color: var(--color-accent);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.lbl {
+		font-size: clamp(11px, 1.6vmin, 15px);
 		color: var(--color-accent);
 	}
 
 	.fan {
 		display: flex;
 		align-items: center;
-		min-height: 174px;
+		justify-content: center;
 	}
 
 	.fan.vertical {
 		flex-direction: column;
-		min-height: auto;
 	}
 
-	.fan {
-		gap: 0.3rem;
+	/* overlap matches the side seats' spacing */
+	.fan > * + * {
+		margin-left: calc(var(--opp-w) * -0.5);
 	}
 
-	.fan.overlap {
-		gap: 0;
+	/* side seats: landscape (rotated) backs stacked vertically */
+	.fan.vertical .fcard {
+		width: var(--opp-h);
+		height: var(--opp-w);
 	}
 
+	.fan.vertical > * + * {
+		margin-left: 0;
+		margin-top: calc(var(--opp-w) * -0.5);
+	}
+
+	/* solid patterned card-back (like the committed version) — reads as a real
+	   stack, not faint ghosts */
 	.fcard {
-		width: 120px;
-		height: 174px;
-		border-radius: 10px;
+		width: var(--opp-w);
+		height: var(--opp-h);
+		border-radius: 8px;
 		flex-shrink: 0;
 		border: 2px solid #f3f2ec;
 		background:
