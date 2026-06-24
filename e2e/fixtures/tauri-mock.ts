@@ -349,6 +349,94 @@ export async function injectTauriMock(page: Page, opts: MockOptions & { easy?: b
 						};
 					}
 
+					if (cmd === 'start_kontab_game') {
+						const n = args?.numPlayers ?? 3;
+						const hands = [];
+						for (let p = 0; p < n; p++) hands.push([{ rank: p + 3, suit: 'spades' }]);
+						return {
+							num_players: n,
+							deck: [],
+							table: [
+								{ rank: 9, suit: 'hearts' },
+								{ rank: 7, suit: 'clubs' }
+							],
+							hands,
+							piles: Array.from({ length: n }, () => []),
+							scores: Array.from({ length: n }, () => 0),
+							deal_scores: Array.from({ length: n }, () => 0),
+							tablas: Array.from({ length: n }, () => 0),
+							current: 0,
+							dealer: n - 1,
+							last_capturer: null,
+							deal_number: 1,
+							target: args?.target ?? 101,
+							phase: { kind: 'playing' }
+						};
+					}
+
+					if (cmd === 'kontab_legal_moves') {
+						const st = args?.state;
+						if (!st) return [];
+						return st.hands[st.current].map((card: any) => ({
+							card,
+							captures: [],
+							played_value: card.rank,
+							is_tabla: false
+						}));
+					}
+
+					if (cmd === 'kontab_apply_move') {
+						const st = JSON.parse(JSON.stringify(args?.state));
+						const card = args?.card;
+						const p = st.current;
+						const idx = st.hands[p].findIndex(
+							(c: any) => c.rank === card.rank && c.suit === card.suit
+						);
+						if (idx >= 0) st.hands[p].splice(idx, 1);
+						st.table.push(card);
+						st.current = (p + 1) % st.num_players;
+						const event: any = {
+							player: p,
+							card,
+							captured: [],
+							is_tabla: false,
+							deal_complete: false,
+							deal_breakdown: null
+						};
+						const allEmpty = st.hands.every((h: any) => h.length === 0);
+						if (allEmpty) {
+							const breakdown = st.scores.map((_: number, i: number) => ({
+								most_cards: i === 0 ? 3 : 0,
+								honors: 0,
+								two_of_clubs: 0,
+								tablas: 0,
+								total: i === 0 ? 3 : 0
+							}));
+							for (let i = 0; i < st.num_players; i++) {
+								st.deal_scores[i] = breakdown[i].total;
+								st.scores[i] += breakdown[i].total;
+							}
+							st.phase = { kind: 'deal_complete' };
+							event.deal_complete = true;
+							event.deal_breakdown = breakdown;
+						}
+						return { state: st, events: [event] };
+					}
+
+					if (cmd === 'kontab_ai_move') {
+						const st = args?.state;
+						const card = st.hands[st.current][0];
+						return { card, captures: [], played_value: card.rank, is_tabla: false };
+					}
+
+					if (cmd === 'kontab_next_deal') {
+						const st = JSON.parse(JSON.stringify(args?.state));
+						st.deal_number += 1;
+						st.scores[st.num_players - 1] = st.target ?? 101;
+						st.phase = { kind: 'game_over', loser: st.num_players - 1 };
+						return st;
+					}
+
 					if (cmd === 'plugin:store|load') return 1;
 					if (cmd === 'plugin:store|get') return [null, false];
 					if (cmd === 'plugin:store|set') return null;

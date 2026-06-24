@@ -44,6 +44,11 @@ pub fn run() {
             commands::calcudoku::validate_calcudoku_solution,
             commands::calcudoku::get_calcudoku_hint,
             commands::calcudoku::check_calcudoku_errors,
+            commands::kontab::start_kontab_game,
+            commands::kontab::kontab_legal_moves,
+            commands::kontab::kontab_apply_move,
+            commands::kontab::kontab_ai_move,
+            commands::kontab::kontab_next_deal,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

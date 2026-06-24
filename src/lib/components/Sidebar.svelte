@@ -19,7 +19,8 @@
 	const games = [
 		{ id: 'bimaru', name: 'Bimaru', route: '/bimaru' },
 		{ id: 'nonogram', name: 'Nonogram', route: '/nonogram' },
-		{ id: 'calcudoku', name: 'Calcudoku', route: '/calcudoku' }
+		{ id: 'calcudoku', name: 'Calcudoku', route: '/calcudoku' },
+		{ id: 'kontab', name: 'Kon-Tab', route: '/kontab' }
 	];
 </script>
 
@@ -71,6 +72,13 @@
 						<circle cx="14.5" cy="12.8" r="0.6" fill="currentColor"/>
 						<path d="M13 14h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
 						<circle cx="14.5" cy="15.2" r="0.6" fill="currentColor"/>
+					</svg>
+				{:else if game.id === 'kontab'}
+					<svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+						<rect x="3" y="4" width="9" height="12" rx="1.3" transform="rotate(-12 7.5 10)" fill="currentColor" opacity="0.4"/>
+						<rect x="7" y="3.5" width="9" height="12" rx="1.3" stroke="currentColor" stroke-width="1.5"/>
+						<path d="M11.5 7l1.4 2.4h-2.8z" fill="currentColor"/>
+						<circle cx="11.5" cy="11.6" r="1.4" fill="currentColor"/>
 					</svg>
 				{/if}
 				<span class="nav-label">{game.name}</span>

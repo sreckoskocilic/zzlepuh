@@ -238,7 +238,7 @@ test.describe('Navigation', () => {
 
 	test('home page shows game cards', async ({ page }) => {
 		await page.goto('/');
-		await expect(page.locator('.game-card')).toHaveCount(3);
+		await expect(page.locator('.game-card')).toHaveCount(4);
 	});
 
 	test('navigate home to bimaru', async ({ page }) => {

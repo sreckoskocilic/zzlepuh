@@ -12,6 +12,7 @@ let running = false;
 
 export async function runSilentUpdate(): Promise<void> {
 	if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return;
+	if (!/Windows/i.test(navigator.userAgent)) return;
 	if (running) return; // re-entrancy guard: never run two update chains at once
 	running = true;
 

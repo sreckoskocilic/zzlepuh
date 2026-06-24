@@ -19,6 +19,12 @@
 			name: 'Calcudoku',
 			description: 'Number cages — fill rows and columns with unique digits that satisfy cage math',
 			route: '/calcudoku'
+		},
+		{
+			id: 'kontab',
+			name: 'Kon-Tab',
+			description: 'Kontra-Tablić — capture the fewest points against strong AI opponents',
+			route: '/kontab'
 		}
 	];
 </script>
@@ -58,6 +64,13 @@
 							<circle cx="23" cy="20.5" r="0.9" fill="var(--color-accent)"/>
 							<path d="M21 22.5h4" stroke="var(--color-accent)" stroke-width="1.8" stroke-linecap="round"/>
 							<circle cx="23" cy="24.5" r="0.9" fill="var(--color-accent)"/>
+						</svg>
+					{:else if game.id === 'kontab'}
+						<svg width="32" height="32" viewBox="0 0 32 32">
+							<rect x="6" y="7" width="14" height="19" rx="2" transform="rotate(-12 13 16)" fill="var(--color-accent)" opacity="0.35"/>
+							<rect x="11" y="6" width="14" height="19" rx="2" stroke="var(--color-accent)" stroke-width="2" fill="var(--color-surface)"/>
+							<path d="M18 11.5l2.2 3.8h-4.4z" fill="var(--color-accent)"/>
+							<circle cx="18" cy="19" r="2.2" fill="var(--color-accent)"/>
 						</svg>
 					{/if}
 				</div>
