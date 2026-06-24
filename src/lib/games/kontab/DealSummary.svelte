@@ -86,7 +86,7 @@
 	td {
 		padding: 0.35rem 0.6rem;
 		text-align: center;
-		color: var(--color-text-muted);
+		color: #c5c8c5;
 	}
 
 	th {
@@ -110,7 +110,7 @@
 
 	.primary {
 		background: #207959;
-		color: #ffffff;
+		color: #e9e1e1;
 		border: none;
 		border-radius: 6px;
 		padding: 0.55rem 1.1rem;

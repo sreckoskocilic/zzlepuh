@@ -2,14 +2,14 @@
 	import { onMount } from 'svelte';
 	import { kontabState } from '$lib/games/kontab/state.svelte';
 	import { kontabNames } from '$lib/games/kontab/names.svelte';
-	import { cardKey, sortHand, type Card } from '$lib/types/kontab';
-	import CardView from '$lib/games/kontab/Card.svelte';
+	import { sortHand, type Card } from '$lib/types/kontab';
 	import Controls from '$lib/games/kontab/Controls.svelte';
 	import NameSettings from '$lib/games/kontab/NameSettings.svelte';
 	import OpponentSeat from '$lib/games/kontab/OpponentSeat.svelte';
 	import ScoreBoard from '$lib/games/kontab/ScoreBoard.svelte';
 	import Table from '$lib/games/kontab/Table.svelte';
 	import Hand from '$lib/games/kontab/Hand.svelte';
+	import CaptureBox from '$lib/games/kontab/CaptureBox.svelte';
 	import DealSummary from '$lib/games/kontab/DealSummary.svelte';
 	import GameOver from '$lib/games/kontab/GameOver.svelte';
 
@@ -31,7 +31,6 @@
 
 	const lastCaptured = $derived(kontabState.lastEvent?.captured ?? []);
 	const tableHighlight = $derived(previewCaptured.length ? previewCaptured : lastCaptured);
-	const flash = $derived(kontabState.capturedFlash);
 
 	onMount(() => {
 		kontabNames.load();
@@ -68,6 +67,7 @@
 					{seat}
 					thinking={kontabState.thinking}
 					position={seatPositions[seat - 1] ?? 'top'}
+					captured={kontabState.krugCaptures[seat] ?? []}
 				/>
 			{/each}
 
@@ -83,21 +83,13 @@
 					onplay={(c) => kontabState.playCard(c)}
 					onpreview={(c) => (previewCard = c)}
 				/>
+				<div class="me-capwrap">
+					<CaptureBox cards={kontabState.krugCaptures[0] ?? []} />
+				</div>
 			</section>
+
 		</div>
 
-	{/if}
-
-	{#if flash}
-		<div class="capture-flash" data-testid="kontab-capture">
-			<span class="cap-who">{kontabNames.label(flash.player)} nosi</span>
-			<div class="cap-cards">
-				<CardView card={flash.card} size="lg" />
-				{#each flash.captured as c (cardKey(c))}
-					<CardView card={c} size="lg" />
-				{/each}
-			</div>
-		</div>
 	{/if}
 
 	{#if kontabState.lastEvent?.is_tabla}
@@ -188,43 +180,21 @@
 
 	.me {
 		grid-area: me;
+		position: relative;
 		/* my hand: the big, prominent cards */
 		--lg-w: clamp(90px, 14vmin, 185px);
 		--lg-h: calc(var(--lg-w) * 1.452);
 	}
 
-	.capture-flash {
-		position: fixed;
+	/* human capture box: beside the hand (right), absolute so it never shifts
+	   the hand layout */
+	.me-capwrap {
+		position: absolute;
+		left: calc(100% + 0.6rem);
 		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.6rem;
-		padding: 1rem 1.4rem;
-		background: color-mix(in srgb, var(--color-surface-hover) 92%, black);
-		border: 2px solid var(--color-accent);
-		border-radius: 14px;
-		box-shadow:
-			0 0 0 1px color-mix(in srgb, var(--color-accent) 30%, transparent),
-			0 10px 34px rgba(0, 0, 0, 0.6),
-			0 0 50px -10px color-mix(in srgb, var(--color-accent) 50%, transparent);
-		z-index: 20;
-	}
-
-	.cap-who {
-		font-size: 1.4rem;
-		font-weight: 700;
-		color: var(--color-accent);
-	}
-
-	.cap-cards {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: center;
-		gap: 0.45rem;
-		max-width: min(94vw, 980px);
+		transform: translateY(-50%);
+		z-index: 12;
+		pointer-events: none;
 	}
 
 

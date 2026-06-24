@@ -1,15 +1,17 @@
 <script lang="ts">
-	import type { GameState } from '$lib/types/kontab';
+	import type { Card, GameState } from '$lib/types/kontab';
 	import { kontabNames } from './names.svelte';
+	import CaptureBox from './CaptureBox.svelte';
 
 	interface Props {
 		game: GameState;
 		seat: number;
 		thinking: boolean;
 		position: 'top' | 'left' | 'right';
+		captured?: Card[];
 	}
 
-	let { game, seat, thinking, position }: Props = $props();
+	let { game, seat, thinking, position, captured = [] }: Props = $props();
 
 	const MAX_SLOTS = 6;
 
@@ -41,10 +43,14 @@
 		{/each}
 		{#if count === 0}<span class="empty">—</span>{/if}
 	</div>
+	<div class="capwrap cap-{position}">
+		<CaptureBox cards={captured} />
+	</div>
 </div>
 
 <style>
 	.seat {
+		position: relative;
 		/* card-back size, scales with window */
 		--opp-w: clamp(52px, 9vmin, 124px);
 		--opp-h: calc(var(--opp-w) * 1.452);
@@ -52,6 +58,31 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 0.5vmin;
+	}
+
+	/* absolute so the box never resizes the seat / side grid column (avoids
+	   drifting the whole center column) */
+	.capwrap {
+		position: absolute;
+		z-index: 12;
+		pointer-events: none;
+	}
+
+	/* side seats: box below */
+	.cap-left,
+	.cap-right {
+		top: 100%;
+		left: 50%;
+		transform: translateX(-50%);
+		margin-top: 0.35rem;
+	}
+
+	/* top seat: box beside (to the right) */
+	.cap-top {
+		left: 100%;
+		top: 50%;
+		transform: translateY(-50%);
+		margin-left: 0.6rem;
 	}
 
 	.seat-top {
@@ -85,8 +116,8 @@
 
 	.nm {
 		font-size: clamp(14px, 2.1vmin, 22px);
-		font-weight: 700;
-		color: var(--color-text-primary);
+		font-weight: 400;
+		color: #bdc4bd;
 		letter-spacing: 0.03em;
 	}
 
@@ -96,7 +127,7 @@
 
 	.cnt {
 		font-size: clamp(16px, 2.4vmin, 27px);
-		font-weight: 600;
+		font-weight: 400;
 		line-height: 1;
 		color: var(--color-accent);
 		font-variant-numeric: tabular-nums;

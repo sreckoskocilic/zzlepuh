@@ -22,7 +22,7 @@ class KontabState {
 	game = $state<GameState | null>(null);
 	legal = $state<Move[]>([]);
 	lastEvent = $state<MoveEvent | null>(null);
-	capturedFlash = $state<MoveEvent | null>(null);
+	krugCaptures = $state<Card[][]>([]);
 	thinking = $state(false);
 	showDealSummary = $state(false);
 	dealSummary = $state<MoveEvent | null>(null);
@@ -31,6 +31,7 @@ class KontabState {
 
 	private startedAt = 0;
 	private resultRecorded = false;
+	private movesInKrug = 0;
 
 	get phase(): string {
 		return this.game?.phase.kind ?? 'idle';
@@ -64,7 +65,8 @@ class KontabState {
 		this.showDealSummary = false;
 		this.dealSummary = null;
 		this.lastEvent = null;
-		this.capturedFlash = null;
+		this.krugCaptures = Array.from({ length: numPlayers }, () => []);
+		this.movesInKrug = 0;
 		this.startedAt = Date.now();
 		try {
 			this.game = await startKontabGame(numPlayers, target);
@@ -83,7 +85,7 @@ class KontabState {
 		this.busy = true;
 		try {
 			await this.apply(card);
-			if (this.capturedFlash) await delay(CAPTURE_SHOW_MS);
+			if (this.lastEvent?.captured.length) await delay(CAPTURE_SHOW_MS);
 			await this.loop();
 		} catch (e) {
 			this.error = String(e);
@@ -97,6 +99,8 @@ class KontabState {
 		this.busy = true;
 		try {
 			this.game = await kontabNextDeal($state.snapshot(this.game));
+			this.krugCaptures = Array.from({ length: this.game.num_players }, () => []);
+			this.movesInKrug = 0;
 			this.showDealSummary = false;
 			this.dealSummary = null;
 			await this.loop();
@@ -113,7 +117,17 @@ class KontabState {
 		const result = await kontabApplyMove($state.snapshot(g), card);
 		const event = result.events[result.events.length - 1] ?? null;
 		this.lastEvent = event;
-		this.capturedFlash = event && event.captured.length > 0 ? event : null;
+		if (event) {
+			const n = result.state.num_players;
+			if (this.movesInKrug >= n) {
+				this.krugCaptures = Array.from({ length: n }, () => []);
+				this.movesInKrug = 0;
+			}
+			const next = this.krugCaptures.slice();
+			next[event.player] = event.captured.length ? [event.card, ...event.captured] : [];
+			this.krugCaptures = next;
+			this.movesInKrug++;
+		}
 		this.game = result.state;
 	}
 
@@ -130,7 +144,6 @@ class KontabState {
 				return;
 			}
 			if (g.current === HUMAN) {
-				this.capturedFlash = null;
 				this.legal = await kontabLegalMoves($state.snapshot(g));
 				return;
 			}
@@ -139,7 +152,7 @@ class KontabState {
 			const mv = await kontabAiMove($state.snapshot(this.game));
 			await this.apply(mv.card);
 			this.thinking = false;
-			await delay(this.capturedFlash ? CAPTURE_SHOW_MS : 0);
+			await delay(this.lastEvent?.captured.length ? CAPTURE_SHOW_MS : 0);
 		}
 	}
 

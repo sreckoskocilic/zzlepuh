@@ -21,13 +21,13 @@
 	<table>
 		<tbody>
 			{#each game.scores as score, p (p)}
-				<tr class:you={p === 0} class:danger={p === leader && score > 0} data-testid={`score-${p}`}>
-					<td class="deal-cell">
-						{#if p === game.dealer}
-							<span class="dealer-card" title="Dijeli" data-testid={`dealer-${p}`}></span>
-						{/if}
-					</td>
-					<td>{label(p)}</td>
+				<tr
+					class:you={p === 0}
+					class:danger={p === leader && score > 0}
+					class:dealer={p === game.dealer}
+					data-testid={`score-${p}`}
+				>
+					<td data-testid={p === game.dealer ? `dealer-${p}` : undefined} title={p === game.dealer ? 'Dijeli' : undefined}>{label(p)}</td>
 					<td class="num">{score}</td>
 					<td class="num cards" title="Odnesene karte u ovom dijeljenju">{game.piles[p].length}</td>
 				</tr>
@@ -68,29 +68,8 @@
 		color: #6fb0e8;
 	}
 
-	.deal-cell {
-		width: 28px;
-		padding: 0 0.24rem 0 0.56rem;
-		text-align: center;
-		vertical-align: middle;
-	}
-
-	.dealer-card {
-		display: inline-block;
-		vertical-align: middle;
-		width: 13px;
-		height: 18px;
-		border-radius: 3px;
-		border: 1.5px solid #f3f2ec;
-		background:
-			repeating-linear-gradient(
-				45deg,
-				rgba(255, 255, 255, 0.14),
-				rgba(255, 255, 255, 0.14) 2px,
-				transparent 2px,
-				transparent 5px
-			),
-			linear-gradient(135deg, #2f5aa8, #1d3a73);
+	tbody tr.dealer td {
+		background: #1c341c;
 	}
 
 	tbody tr.you td {

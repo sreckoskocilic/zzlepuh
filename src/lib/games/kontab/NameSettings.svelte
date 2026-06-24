@@ -51,7 +51,7 @@
 
 	.gear {
 		background: #2f3d32;
-		color: #ffffff;
+		color: #e9e1e1;
 		border: none;
 		border-radius: 6px;
 		padding: 0.5rem 1.1rem;
