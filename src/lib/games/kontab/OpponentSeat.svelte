@@ -34,7 +34,7 @@
 		<span class="nm">{kontabNames.label(seat)}</span>
 		<span class="cnt" data-testid={`opponent-${seat}-count`}>{count}</span>
 		{#if active && thinking}
-			<span class="lbl" data-testid={`opponent-${seat}-thinking`}>misli…</span>
+			<span class="lbl" data-testid={`opponent-${seat}-thinking`}>thinking…</span>
 		{/if}
 	</div>
 	<div class="fan" class:vertical>
@@ -133,7 +133,7 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	/* absolute so toggling 'misli…' never resizes the plate (which would resize
+	/* absolute so toggling 'thinking…' never resizes the plate (which would resize
 	   the side grid column and drift the whole center column) */
 	.lbl {
 		position: absolute;

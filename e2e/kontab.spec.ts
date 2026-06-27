@@ -28,5 +28,5 @@ test('playing a card drives AI turns to a deal summary, then game over', async (
 	await expect(kontab.dealSummary).toBeVisible();
 	await kontab.continueBtn.click();
 	await expect(kontab.gameOver).toBeVisible();
-	await expect(kontab.result).toContainText('izgubio');
+	await expect(kontab.result).toContainText('lost');
 });

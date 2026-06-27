@@ -1,5 +1,5 @@
 const KEY = 'kontab:names';
-const DEFAULTS = ['Ti', 'C1', 'C2', 'C3'];
+const DEFAULTS = ['You', 'C1', 'C2', 'C3'];
 
 class KontabNames {
 	names = $state<string[]>([...DEFAULTS]);

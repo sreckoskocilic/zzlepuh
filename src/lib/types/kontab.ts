@@ -5,7 +5,7 @@ export interface Card {
 	suit: Suit;
 }
 
-export type Phase =
+type Phase =
 	| { kind: 'playing' }
 	| { kind: 'deal_complete' }
 	| { kind: 'game_over'; loser: number };

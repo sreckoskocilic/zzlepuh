@@ -17,11 +17,11 @@
 
 <div class="overlay" data-testid="kontab-game-over">
 	<div class="panel" class:lost={humanLost}>
-		<h2>{humanLost ? 'Izgubio si' : 'Pobjeda!'}</h2>
+		<h2>{humanLost ? 'You lost' : 'Victory!'}</h2>
 		<p class="sub" data-testid="kontab-result">
 			{humanLost
-				? 'Skupio si najviše bodova.'
-				: `${label(loser)} izgubio s ${game.scores[loser]} bodova.`}
+				? 'You collected the most points.'
+				: `${label(loser)} lost with ${game.scores[loser]} points.`}
 		</p>
 		<div class="rows">
 			{#each game.scores as score, p (p)}
@@ -32,7 +32,7 @@
 			{/each}
 		</div>
 		<button type="button" class="primary" data-testid="kontab-play-again" onclick={onnew}>
-			Igraj ponovno
+			Play again
 		</button>
 	</div>
 </div>

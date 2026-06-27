@@ -27,9 +27,9 @@
 					class:dealer={p === game.dealer}
 					data-testid={`score-${p}`}
 				>
-					<td data-testid={p === game.dealer ? `dealer-${p}` : undefined} title={p === game.dealer ? 'Dijeli' : undefined}>{label(p)}</td>
+					<td data-testid={p === game.dealer ? `dealer-${p}` : undefined} title={p === game.dealer ? 'Dealer' : undefined}>{label(p)}</td>
 					<td class="num">{score}</td>
-					<td class="num cards" title="Odnesene karte u ovom dijeljenju">{game.piles[p].length}</td>
+					<td class="num cards" title="Cards captured this deal">{game.piles[p].length}</td>
 				</tr>
 			{/each}
 		</tbody>

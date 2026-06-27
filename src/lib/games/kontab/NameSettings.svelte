@@ -4,7 +4,7 @@
 	let open = $state(false);
 
 	const fields = [
-		{ i: 0, label: 'Ti' },
+		{ i: 0, label: 'You' },
 		{ i: 1, label: 'C1' },
 		{ i: 2, label: 'C2' },
 		{ i: 3, label: 'C3' }
@@ -15,7 +15,7 @@
 	<button
 		type="button"
 		class="gear"
-		title="Imena igrača"
+		title="Player names"
 		data-testid="kontab-names-toggle"
 		onclick={() => (open = !open)}
 	>

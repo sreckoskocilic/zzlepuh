@@ -1,6 +1,6 @@
-export type Operation = 'add' | 'subtract' | 'multiply' | 'divide' | 'none';
+type Operation = 'add' | 'subtract' | 'multiply' | 'divide' | 'none';
 
-export interface Cage {
+interface Cage {
 	cells: [number, number][];
 	operation: Operation;
 	target: number;

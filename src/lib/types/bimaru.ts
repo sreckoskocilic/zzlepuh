@@ -13,7 +13,7 @@ export type ShipVisual =
 	| 'middle_h'
 	| 'middle_v';
 
-export interface ShipSpec {
+interface ShipSpec {
 	length: number;
 	count: number;
 }

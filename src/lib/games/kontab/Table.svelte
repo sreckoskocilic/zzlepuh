@@ -14,7 +14,7 @@
 
 <div class="table" data-testid="kontab-table">
 	{#if cards.length === 0}
-		<span class="empty" data-testid="kontab-table-empty">Stol prazan</span>
+		<span class="empty" data-testid="kontab-table-empty">Table empty</span>
 	{:else}
 		{#each cards as card (cardKey(card))}
 			<CardView {card} size="lg" highlight={highlightKeys.has(cardKey(card))} testid={`table-${cardKey(card)}`} />

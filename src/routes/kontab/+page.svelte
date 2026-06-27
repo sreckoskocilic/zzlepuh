@@ -93,7 +93,7 @@
 	{/if}
 
 	{#if kontabState.lastEvent?.is_tabla}
-		<div class="tabla-flash" data-testid="kontab-tabla">Tabla! +10</div>
+		<div class="tabla-flash" data-testid="kontab-tabla">Sweep! +10</div>
 	{/if}
 </div>
 

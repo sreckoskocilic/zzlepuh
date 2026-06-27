@@ -15,17 +15,17 @@
 
 <div class="overlay" data-testid="kontab-deal-summary">
 	<div class="panel">
-		<h2>Kraj dijeljenja {game.deal_number}</h2>
+		<h2>End of deal {game.deal_number}</h2>
 		<table>
 			<thead>
 				<tr>
-					<th>Igrač</th>
-					<th title="Najviše karata">Karte</th>
-					<th title="A K Q J 10 (10♦ = 2)">Figure</th>
+					<th>Player</th>
+					<th title="Most cards">Cards</th>
+					<th title="A K Q J 10 (10♦ = 2)">Honors</th>
 					<th>2♣</th>
-					<th>Table</th>
-					<th>Ovo dij.</th>
-					<th>Ukupno</th>
+					<th>Sweep</th>
+					<th>This deal</th>
+					<th>Total</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -44,7 +44,7 @@
 			</tbody>
 		</table>
 		<button type="button" class="primary" data-testid="kontab-continue" onclick={oncontinue}>
-			Sljedeće dijeljenje
+			Next deal
 		</button>
 	</div>
 </div>
