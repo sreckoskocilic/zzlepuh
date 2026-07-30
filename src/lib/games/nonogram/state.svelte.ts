@@ -28,6 +28,10 @@ class NonogramState {
 	isGenerating = $state(false);
 	error = $state<string | null>(null);
 	errorCells = $state<Set<string>>(new Set());
+	winRecordedForGameId = $state(-1);
+	savedElapsedMs = $state(0);
+	pictureId = $state<string | null>(null);
+	revealDismissedForGameId = $state(-1);
 	private gameId = $state(0);
 	get currentGameId() { return this.gameId; }
 	private isValidating = false;
@@ -90,7 +94,7 @@ class NonogramState {
 		this.errorCells = new Set();
 
 		try {
-			this.loadPuzzle(await generateNonogramPicture(id));
+			this.loadPuzzle(await generateNonogramPicture(id), id);
 		} catch (e) {
 			this.error = String(e);
 		} finally {
@@ -98,7 +102,7 @@ class NonogramState {
 		}
 	}
 
-	private loadPuzzle(puzzle: NonogramPuzzle): void {
+	private loadPuzzle(puzzle: NonogramPuzzle, pictureId: string | null = null): void {
 		this.puzzle = puzzle;
 		this.grid = Array.from({ length: puzzle.rows }, () =>
 			Array.from({ length: puzzle.cols }, () => 'empty' as CellState)
@@ -106,8 +110,16 @@ class NonogramState {
 		this.isComplete = false;
 		this.hintsUsed = 0;
 		this.gameId++;
+		this.savedElapsedMs = 0;
+		this.pictureId = pictureId;
 		this.isValidating = false;
 		this.undoStack.clear();
+		this.stroke = null;
+		if (this.errorTimeout) {
+			clearTimeout(this.errorTimeout);
+			this.errorTimeout = null;
+		}
+		this.errorCells = new Set();
 	}
 
 	startStroke(row: number, col: number, mode: 'fill' | 'mark'): void {
@@ -283,6 +295,7 @@ class NonogramState {
 		);
 		this.isComplete = false;
 		this.errorCells = new Set();
+		this.savedElapsedMs = 0;
 		this.undoStack.clear();
 	}
 

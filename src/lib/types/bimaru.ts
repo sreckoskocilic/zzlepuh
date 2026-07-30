@@ -37,4 +37,5 @@ export interface BimaruHint {
 	col: number;
 	value: CellValue;
 	reason: string;
+	is_correction?: boolean;
 }

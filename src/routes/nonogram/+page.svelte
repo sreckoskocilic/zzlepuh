@@ -15,15 +15,21 @@
 	import type { GridSize } from '$lib/games/nonogram/Controls.svelte';
 	import { formatTime } from '$lib/utils/format';
 
-	onMount(() => timer.reset());
+	onMount(() => {
+		if (!nonogramState.puzzle) {
+			timer.reset();
+			return;
+		}
+		timer.setElapsed(nonogramState.savedElapsedMs);
+		if (!nonogramState.isComplete) timer.start();
+	});
 	onDestroy(() => {
 		timer.pause();
+		if (nonogramState.puzzle) nonogramState.savedElapsedMs = timer.elapsedMs;
 		if (winTimeout) clearTimeout(winTimeout);
 	});
 
 	let pictures = $state<PictureMeta[]>([]);
-	let lastPictureId = $state<string | null>(null);
-	let revealClosed = $state(false);
 	onMount(async () => {
 		try {
 			// `?? []`: a mock/non-Tauri host can resolve null, which would crash Controls.
@@ -35,10 +41,9 @@
 
 	let difficulty: Difficulty = $state('medium');
 	let gridSize: GridSize = $state(10);
-	let winRecordedForGameId = $state(-1);
 	let winTimeout: ReturnType<typeof setTimeout> | null = null;
 	let showLeaderboard = $state(false);
-	let lastRank: number | null = $state(null);
+	let lastRank = $state<{ rank: number | null; difficulty: Difficulty; size: GridSize } | null>(null);
 	let areaWidth = $state(0);
 	let areaHeight = $state(0);
 
@@ -66,9 +71,6 @@
 		}
 		difficulty = d;
 		gridSize = size;
-		lastPictureId = null;
-		revealClosed = false;
-		winRecordedForGameId = -1;
 		lastRank = null;
 		await nonogramState.startNewGame(d, size, size);
 		timer.restart();
@@ -80,9 +82,6 @@
 		if (nonogramState.isActive && !nonogramState.isValidatingSolution && !nonogramState.isPicture) {
 			statsStore.recordLoss('nonogram');
 		}
-		lastPictureId = id;
-		revealClosed = false;
-		winRecordedForGameId = -1;
 		lastRank = null;
 		await nonogramState.startPictureGame(id);
 		timer.restart();
@@ -126,14 +125,14 @@
 	}
 
 	$effect(() => {
-		if (nonogramState.isComplete && winRecordedForGameId !== nonogramState.currentGameId) {
-			winRecordedForGameId = nonogramState.currentGameId;
+		if (nonogramState.isComplete && nonogramState.winRecordedForGameId !== nonogramState.currentGameId) {
+			nonogramState.winRecordedForGameId = nonogramState.currentGameId;
 			timer.pause();
 			// Picture puzzles: variable size + non-standard difficulty → keep them
 			// out of stats/leaderboard. They just show the reveal.
 			if (nonogramState.isPicture) return;
 			const gameDifficulty = (nonogramState.puzzle?.difficulty ?? difficulty) as Difficulty;
-			const gameSize = nonogramState.puzzle?.rows ?? gridSize;
+			const gameSize = (nonogramState.puzzle?.rows ?? gridSize) as GridSize;
 			const ms = timer.elapsedMs;
 			const hints = nonogramState.hintsUsed;
 			const recordedGameId = nonogramState.currentGameId;
@@ -141,7 +140,9 @@
 				winTimeout = null;
 				await statsStore.recordWin('nonogram', gameDifficulty, ms);
 				const rank = await leaderboardStore.addEntry('nonogram', gameDifficulty, gameSize, ms, hints);
-				if (recordedGameId === nonogramState.currentGameId) lastRank = rank;
+				if (recordedGameId === nonogramState.currentGameId) {
+					lastRank = { rank, difficulty: gameDifficulty, size: gameSize };
+				}
 			}, 0);
 		}
 	});
@@ -170,6 +171,9 @@
 
 	let leaderboardEntries = $derived(leaderboardStore.getEntries('nonogram', difficulty, gridSize));
 	let stats = $derived(statsStore.getStats('nonogram'));
+	let shownRank = $derived(
+		lastRank && lastRank.difficulty === difficulty && lastRank.size === gridSize ? lastRank.rank : null
+	);
 </script>
 
 <svelte:window onkeydown={handleKeydown} onpointerup={handleStrokeEnd} onpointercancel={handleStrokeEnd} />
@@ -229,19 +233,19 @@
 					{cellSize}
 				/>
 
-				{#if nonogramState.isComplete && nonogramState.isPicture && !revealClosed}
+				{#if nonogramState.isComplete && nonogramState.isPicture && nonogramState.revealDismissedForGameId !== nonogramState.currentGameId}
 					<PictureReveal
 						grid={nonogramState.grid}
 						title={nonogramState.puzzle.title ?? 'PixelArt'}
 						elapsedMs={timer.elapsedMs}
-						onClose={() => (revealClosed = true)}
-						onAgain={() => lastPictureId && handlePlayPicture(lastPictureId)}
+						onClose={() => (nonogramState.revealDismissedForGameId = nonogramState.currentGameId)}
+						onAgain={() => nonogramState.pictureId && handlePlayPicture(nonogramState.pictureId)}
 					/>
 				{:else if nonogramState.isComplete && !nonogramState.isPicture}
 					<WinOverlay
 						hintsUsed={nonogramState.hintsUsed}
 						elapsedMs={timer.elapsedMs}
-						leaderboardRank={lastRank}
+						leaderboardRank={lastRank?.rank ?? null}
 						onNewGame={() => handleNewGame(difficulty, gridSize)}
 					/>
 				{/if}
@@ -270,7 +274,7 @@
 		</div>
 
 		{#if showLeaderboard}
-			<Leaderboard entries={leaderboardEntries} highlightRank={lastRank} />
+			<Leaderboard entries={leaderboardEntries} highlightRank={shownRank} />
 		{/if}
 	{/if}
 </div>

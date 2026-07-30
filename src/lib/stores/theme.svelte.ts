@@ -12,16 +12,18 @@ export const THEMES: { id: ThemeName; label: string; swatch: string }[] = [
 
 class ThemeStore {
 	current = $state<ThemeName>('emerald');
+	private userChose = false;
 
 	async init() {
 		const saved = await getData<ThemeName>('theme');
-		if (saved && THEMES.some((t) => t.id === saved)) {
+		if (!this.userChose && saved && THEMES.some((t) => t.id === saved)) {
 			this.current = saved;
 		}
 		this.apply();
 	}
 
 	async set(theme: ThemeName) {
+		this.userChose = true;
 		this.current = theme;
 		this.apply();
 		await setData('theme', theme);

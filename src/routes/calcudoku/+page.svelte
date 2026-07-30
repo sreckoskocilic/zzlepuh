@@ -12,18 +12,25 @@
 	import type { GridSize } from '$lib/games/calcudoku/Controls.svelte';
 	import { formatTime } from '$lib/utils/format';
 
-	onMount(() => timer.reset());
+	onMount(() => {
+		if (!calcudokuState.puzzle) {
+			timer.reset();
+			return;
+		}
+		timer.setElapsed(calcudokuState.savedElapsedMs);
+		if (!calcudokuState.isComplete) timer.start();
+	});
 	onDestroy(() => {
 		timer.pause();
+		if (calcudokuState.puzzle) calcudokuState.savedElapsedMs = timer.elapsedMs;
 		if (winTimeout) clearTimeout(winTimeout);
 	});
 
 	let difficulty: Difficulty = $state('medium');
 	let gridSize: GridSize = $state(6);
-	let winRecordedForGameId = $state(-1);
 	let winTimeout: ReturnType<typeof setTimeout> | null = null;
 	let showLeaderboard = $state(false);
-	let lastRank: number | null = $state(null);
+	let lastRank = $state<{ rank: number | null; difficulty: Difficulty; size: GridSize } | null>(null);
 	let areaWidth = $state(0);
 	let areaHeight = $state(0);
 
@@ -45,7 +52,6 @@
 		}
 		difficulty = d;
 		gridSize = size;
-		winRecordedForGameId = -1;
 		lastRank = null;
 		await calcudokuState.startNewGame(d, size);
 		timer.restart();
@@ -104,22 +110,24 @@
 	function moveSelection(key: string) {
 		if (!calcudokuState.puzzle) return;
 		const n = calcudokuState.puzzle.size;
-		let [r, c] = calcudokuState.selectedCell ?? [0, 0];
+		const from = calcudokuState.selectedCell;
+		let [r, c] = from ?? [0, 0];
 
 		if (key === 'ArrowUp') r = Math.max(0, r - 1);
 		else if (key === 'ArrowDown') r = Math.min(n - 1, r + 1);
 		else if (key === 'ArrowLeft') c = Math.max(0, c - 1);
 		else if (key === 'ArrowRight') c = Math.min(n - 1, c + 1);
 
+		if (from && from[0] === r && from[1] === c) return;
 		calcudokuState.selectCell(r, c);
 	}
 
 	$effect(() => {
-		if (calcudokuState.isComplete && winRecordedForGameId !== calcudokuState.currentGameId) {
-			winRecordedForGameId = calcudokuState.currentGameId;
+		if (calcudokuState.isComplete && calcudokuState.winRecordedForGameId !== calcudokuState.currentGameId) {
+			calcudokuState.winRecordedForGameId = calcudokuState.currentGameId;
 			timer.pause();
 			const gameDifficulty = (calcudokuState.puzzle?.difficulty ?? difficulty) as Difficulty;
-			const gameSize = gridSize;
+			const gameSize = (calcudokuState.puzzle?.size ?? gridSize) as GridSize;
 			const ms = timer.elapsedMs;
 			const hints = calcudokuState.hintsUsed;
 			const recordedGameId = calcudokuState.currentGameId;
@@ -133,7 +141,9 @@
 					ms,
 					hints
 				);
-				if (recordedGameId === calcudokuState.currentGameId) lastRank = rank;
+				if (recordedGameId === calcudokuState.currentGameId) {
+					lastRank = { rank, difficulty: gameDifficulty, size: gameSize };
+				}
 			}, 0);
 		}
 	});
@@ -162,6 +172,9 @@
 
 	let leaderboardEntries = $derived(leaderboardStore.getEntries('calcudoku', difficulty, gridSize));
 	let stats = $derived(statsStore.getStats('calcudoku'));
+	let shownRank = $derived(
+		lastRank && lastRank.difficulty === difficulty && lastRank.size === gridSize ? lastRank.rank : null
+	);
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -253,7 +266,7 @@
 					<WinOverlay
 						hintsUsed={calcudokuState.hintsUsed}
 						elapsedMs={timer.elapsedMs}
-						leaderboardRank={lastRank}
+						leaderboardRank={lastRank?.rank ?? null}
 						onNewGame={() => handleNewGame(difficulty, gridSize)}
 					/>
 				{/if}
@@ -314,7 +327,7 @@
 		</div>
 
 		{#if showLeaderboard}
-			<Leaderboard entries={leaderboardEntries} highlightRank={lastRank} />
+			<Leaderboard entries={leaderboardEntries} highlightRank={shownRank} />
 		{/if}
 	{/if}
 </div>

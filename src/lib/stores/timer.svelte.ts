@@ -34,6 +34,12 @@ class TimerState {
 		this.pausedMs = 0;
 	}
 
+	setElapsed(ms: number): void {
+		this.pause();
+		this.elapsedMs = ms;
+		this.pausedMs = ms;
+	}
+
 	restart(): void {
 		this.reset();
 		this.start();

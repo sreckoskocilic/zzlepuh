@@ -22,6 +22,8 @@ class BimaruState {
 	isGenerating = $state(false);
 	error = $state<string | null>(null);
 	errorCells = $state<Set<string>>(new Set());
+	winRecordedForGameId = $state(-1);
+	savedElapsedMs = $state(0);
 	private gameId = $state(0);
 	get currentGameId() { return this.gameId; }
 	private isValidating = false;
@@ -64,8 +66,14 @@ class BimaruState {
 			this.isComplete = false;
 			this.hintsUsed = 0;
 			this.gameId++;
+			this.savedElapsedMs = 0;
 			this.isValidating = false;
 			this.undoStack.clear();
+			if (this.errorTimeout) {
+				clearTimeout(this.errorTimeout);
+				this.errorTimeout = null;
+			}
+			this.errorCells = new Set();
 		} catch (e) {
 			this.error = String(e);
 		} finally {
@@ -121,7 +129,7 @@ class BimaruState {
 			if (!hint || this.gameId !== capturedGameId) return false;
 			// The deduction was computed against the grid at call time; if the player
 			// has since filled the target cell, applying it would clobber their move.
-			if (this.grid[hint.row][hint.col] !== 'empty') return false;
+			if (!hint.is_correction && this.grid[hint.row][hint.col] !== 'empty') return false;
 
 			const changes: CellChange[] = [];
 			changes.push({ row: hint.row, col: hint.col, prev: this.grid[hint.row][hint.col], next: hint.value });
@@ -225,6 +233,7 @@ class BimaruState {
 		this.grid = this.initGridFromHints(this.puzzle);
 		this.isComplete = false;
 		this.errorCells = new Set();
+		this.savedElapsedMs = 0;
 		this.undoStack.clear();
 	}
 

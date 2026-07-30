@@ -102,6 +102,7 @@ pub struct BimaruHint {
     pub col: usize,
     pub value: CellValue,
     pub reason: String,
+    pub is_correction: bool,
 }
 
 #[derive(Clone, Debug)]

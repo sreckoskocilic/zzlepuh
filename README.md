@@ -1,8 +1,8 @@
 # Zzlepuh
 
-A small desktop app with three logic puzzles: Bimaru, Nonogram, and Calcudoku. There are no ads and nothing to sign into. Open it, pick a puzzle, start solving.
+A small desktop app with three logic puzzles and a card game: Bimaru, Nonogram, Calcudoku, and Kon-Tab. There are no ads and nothing to sign into. Open it, pick a game, start playing.
 
-It tracks your stats and keeps a local leaderboard for each game. Dark emerald theme. When a new version is out it updates itself in the background the next time you launch.
+It tracks your stats, and keeps a local leaderboard for each puzzle (Kon-Tab records wins and losses only; PixelArt puzzles are left out of both). Five dark themes, emerald by default. When a new version is out it updates itself in the background the next time you launch.
 
 ## Install
 
@@ -18,7 +18,7 @@ That's it. The next time you open the app it checks for a newer release and upda
 
 ### Bimaru (Battleship Solitaire)
 
-Find a hidden fleet on a 10×10 grid. The numbers along the edges tell you how many ship parts go in each row and column, and a few cells are revealed to get you started. Ships never touch, not even diagonally. Left-click places a ship part, right-click marks water. The app figures out the shape of each ship from its neighbours, so you just mark where the ships are and it draws the rest.
+Find a hidden fleet on a grid from 6×6 up to 12×12, 10×10 by default. The numbers along the edges tell you how many ship parts go in each row and column, and a few cells are revealed to get you started. Ships never touch, not even diagonally. Left-click places a ship part, right-click marks water. The app figures out the shape of each ship from its neighbours, so you just mark where the ships are and it draws the rest.
 
 ### Nonogram (Paint by Numbers)
 
@@ -30,9 +30,13 @@ There's also a **PixelArt** mode in the picker. Those are hand-made picture puzz
 
 Fill the grid so every row and column has each number exactly once, like Sudoku. The grid is split into cages with a small label like "12+" or "6×", and the cells in a cage have to combine with that operation to hit the target. Grids run from 4×4 up to 9×9. There's a notes mode for pencil marks and full undo/redo while you work.
 
+### Kon-Tab (Kontra-Tablić)
+
+A card game against the computer, for 2 to 4 players. Play a card to capture cards off the table whose values add up to yours; aces are flexible and can carry the high value. Scoring runs **backwards** — the lowest score wins, and the game ends as soon as somebody crosses the target of 51 or 101. Clearing the whole table is a *tabla* and costs the others ten. You can rename the opponents if you like.
+
 ## Hints and checking
 
-Every game has a **Hint** button that fills in one cell you could have worked out, and a **Check** button that flags any mistakes so far. Use them when you're stuck; skip them if you want a clean solve.
+Every puzzle has a **Hint** button that fills in one cell you could have worked out, and a **Check** button that flags any mistakes so far. Use them when you're stuck; skip them if you want a clean solve.
 
 ## Screenshots
 

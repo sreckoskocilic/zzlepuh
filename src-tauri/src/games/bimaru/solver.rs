@@ -145,6 +145,10 @@ pub fn find_deduction(
         }
     }
 
+    if is_invalid(&grid, row_clues, col_clues, rows, cols) {
+        return None;
+    }
+
     let before = grid.clone();
     propagate(&mut grid, row_clues, col_clues, rows, cols);
 
@@ -577,6 +581,32 @@ fn deduce_reason(row_clues: &[usize], col_clues: &[usize], r: usize, c: usize) -
 mod tests {
     use super::*;
     use crate::games::bimaru::generator;
+
+    #[test]
+    fn test_find_deduction_rejects_contradictory_player_grid() {
+        let row_clues = vec![1, 0, 0, 0];
+        let col_clues = vec![1, 0, 0, 0];
+        let hints = vec![vec![HintCell::Empty; 4]; 4];
+
+        let mut player_grid = vec![vec![CellValue::Empty; 4]; 4];
+        player_grid[0][3] = CellValue::Ship;
+
+        assert_eq!(
+            find_deduction(&row_clues, &col_clues, &player_grid, &hints, 4, 4),
+            None,
+            "a grid whose ship count exceeds a clue must not yield a deduction"
+        );
+
+        let clean = vec![vec![CellValue::Empty; 4]; 4];
+        let hint = find_deduction(&row_clues, &col_clues, &clean, &hints, 4, 4);
+        let (r, c, value, _) = hint.expect("a consistent grid must still deduce");
+        let truth_is_ship = r == 0 && c == 0;
+        assert_eq!(
+            value == CellValue::Ship,
+            truth_is_ship,
+            "deduction at ({r},{c}) contradicts the only solution"
+        );
+    }
 
     #[test]
     fn test_solver_finds_unique_solution() {

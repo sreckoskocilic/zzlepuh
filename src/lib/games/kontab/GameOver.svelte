@@ -6,9 +6,10 @@
 		game: GameState;
 		loser: number;
 		onnew: () => void;
+		busy?: boolean;
 	}
 
-	let { game, loser, onnew }: Props = $props();
+	let { game, loser, onnew, busy = false }: Props = $props();
 
 	const humanLost = $derived(loser === 0);
 
@@ -31,7 +32,7 @@
 				</div>
 			{/each}
 		</div>
-		<button type="button" class="primary" data-testid="kontab-play-again" onclick={onnew}>
+		<button type="button" class="primary" data-testid="kontab-play-again" onclick={onnew} disabled={busy}>
 			Play again
 		</button>
 	</div>

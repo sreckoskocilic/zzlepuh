@@ -30,12 +30,21 @@ node -e '
 perl -0pi -e 's/(\[package\][^\[]*?\nversion = ")[^"]+(")/${1}'"$VERSION"'${2}/s' src-tauri/Cargo.toml
 
 # 4) osvježi Cargo.lock
-cargo update --manifest-path src-tauri/Cargo.toml --workspace >/dev/null 2>&1 || true
+cargo update --manifest-path src-tauri/Cargo.toml --workspace >/dev/null
 
-echo "✓ Gotovo:"
-echo -n "  package.json     "; node -p 'require("./package.json").version'
-echo -n "  tauri.conf.json  "; node -p 'require("./src-tauri/tauri.conf.json").version'
-echo -n "  Cargo.toml       "; grep -m1 '^version' src-tauri/Cargo.toml | sed 's/version = //;s/"//g'
+PKG=$(node -p 'require("./package.json").version')
+CONF=$(node -p 'require("./src-tauri/tauri.conf.json").version')
+CARGO=$(grep -m1 '^version' src-tauri/Cargo.toml | sed -E 's/.*"(.*)".*/\1/')
+LOCK=$(grep -A1 '^name = "zzlepuh"$' src-tauri/Cargo.lock | sed -nE 's/^version = "(.*)"/\1/p')
+
+for pair in "package.json:$PKG" "tauri.conf.json:$CONF" "Cargo.toml:$CARGO" "Cargo.lock:$LOCK"; do
+	if [[ "${pair#*:}" != "$VERSION" ]]; then
+		echo "✗ ${pair%%:*} kaže '${pair#*:}', očekivano '$VERSION'" >&2
+		exit 1
+	fi
+done
+
+echo "✓ Gotovo — $VERSION u package.json, tauri.conf.json, Cargo.toml, Cargo.lock"
 echo
 echo "Dalje (ti, ručno):"
 echo "  git commit -am \"v$VERSION\" && git tag v$VERSION && git push --follow-tags"

@@ -13,18 +13,25 @@
 	import type { GridSize } from '$lib/games/bimaru/Controls.svelte';
 	import { formatTime } from '$lib/utils/format';
 
-	onMount(() => timer.reset());
+	onMount(() => {
+		if (!bimaruState.puzzle) {
+			timer.reset();
+			return;
+		}
+		timer.setElapsed(bimaruState.savedElapsedMs);
+		if (!bimaruState.isComplete) timer.start();
+	});
 	onDestroy(() => {
 		timer.pause();
+		if (bimaruState.puzzle) bimaruState.savedElapsedMs = timer.elapsedMs;
 		if (winTimeout) clearTimeout(winTimeout);
 	});
 
 	let difficulty: Difficulty = $state('medium');
 	let gridSize: GridSize = $state(10);
-	let winRecordedForGameId = $state(-1);
 	let winTimeout: ReturnType<typeof setTimeout> | null = null;
 	let showLeaderboard = $state(false);
-	let lastRank: number | null = $state(null);
+	let lastRank = $state<{ rank: number | null; difficulty: Difficulty; size: GridSize } | null>(null);
 	let areaWidth = $state(0);
 	let areaHeight = $state(0);
 
@@ -49,7 +56,6 @@
 		}
 		difficulty = d;
 		gridSize = size;
-		winRecordedForGameId = -1;
 		lastRank = null;
 		await bimaruState.startNewGame(d, size, size);
 		timer.restart();
@@ -97,11 +103,11 @@
 	}
 
 	$effect(() => {
-		if (bimaruState.isComplete && winRecordedForGameId !== bimaruState.currentGameId) {
-			winRecordedForGameId = bimaruState.currentGameId;
+		if (bimaruState.isComplete && bimaruState.winRecordedForGameId !== bimaruState.currentGameId) {
+			bimaruState.winRecordedForGameId = bimaruState.currentGameId;
 			timer.pause();
 			const gameDifficulty = (bimaruState.puzzle?.difficulty ?? difficulty) as Difficulty;
-			const gameSize = gridSize;
+			const gameSize = (bimaruState.puzzle?.rows ?? gridSize) as GridSize;
 			const ms = timer.elapsedMs;
 			const hints = bimaruState.hintsUsed;
 			const recordedGameId = bimaruState.currentGameId;
@@ -109,7 +115,9 @@
 				winTimeout = null;
 				await statsStore.recordWin('bimaru', gameDifficulty, ms);
 				const rank = await leaderboardStore.addEntry('bimaru', gameDifficulty, gameSize, ms, hints);
-				if (recordedGameId === bimaruState.currentGameId) lastRank = rank;
+				if (recordedGameId === bimaruState.currentGameId) {
+					lastRank = { rank, difficulty: gameDifficulty, size: gameSize };
+				}
 			}, 0);
 		}
 	});
@@ -138,6 +146,9 @@
 
 	let leaderboardEntries = $derived(leaderboardStore.getEntries('bimaru', difficulty, gridSize));
 	let stats = $derived(statsStore.getStats('bimaru'));
+	let shownRank = $derived(
+		lastRank && lastRank.difficulty === difficulty && lastRank.size === gridSize ? lastRank.rank : null
+	);
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -198,7 +209,7 @@
 					<WinOverlay
 						hintsUsed={bimaruState.hintsUsed}
 						elapsedMs={timer.elapsedMs}
-						leaderboardRank={lastRank}
+						leaderboardRank={lastRank?.rank ?? null}
 						onNewGame={() => handleNewGame(difficulty, gridSize)}
 					/>
 				{/if}
@@ -229,7 +240,7 @@
 		</div>
 
 		{#if showLeaderboard}
-			<Leaderboard entries={leaderboardEntries} highlightRank={lastRank} />
+			<Leaderboard entries={leaderboardEntries} highlightRank={shownRank} />
 		{/if}
 	{/if}
 </div>

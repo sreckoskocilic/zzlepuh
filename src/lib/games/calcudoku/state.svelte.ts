@@ -38,6 +38,8 @@ class CalcudokuState {
 	isGenerating = $state(false);
 	error = $state<string | null>(null);
 	errorCells = $state<Set<string>>(new Set());
+	winRecordedForGameId = $state(-1);
+	savedElapsedMs = $state(0);
 	locked = $state<Set<string>>(new Set());
 	private gameId = $state(0);
 	get currentGameId() {
@@ -106,8 +108,14 @@ class CalcudokuState {
 			this.isComplete = false;
 			this.hintsUsed = 0;
 			this.gameId++;
+			this.savedElapsedMs = 0;
 			this.isValidating = false;
 			this.undoStack.clear();
+			if (this.errorTimeout) {
+				clearTimeout(this.errorTimeout);
+				this.errorTimeout = null;
+			}
+			this.errorCells = new Set();
 		} catch (e) {
 			this.error = String(e);
 		} finally {
@@ -280,6 +288,7 @@ class CalcudokuState {
 		this.isComplete = false;
 		this.errorCells = new Set();
 		this.selectedCell = null;
+		this.savedElapsedMs = 0;
 		this.undoStack.clear();
 	}
 

@@ -18,22 +18,40 @@ pub fn get_hint(
             col: c,
             value,
             reason,
+            is_correction: false,
         });
     }
 
     if let Some(solution) = solver::solve(row_clues, col_clues, hints, fleet, rows, cols) {
+        let mut wrong_filled: Option<(usize, usize)> = None;
         for r in 0..rows {
             for c in 0..cols {
-                if player_grid[r][c] != solution[r][c] {
+                if player_grid[r][c] == solution[r][c] {
+                    continue;
+                }
+                if player_grid[r][c] == CellValue::Empty {
                     return Some(BimaruHint {
                         row: r,
                         col: c,
                         value: solution[r][c],
                         reason: "No logical deduction available — revealing from solution"
                             .to_string(),
+                        is_correction: false,
                     });
                 }
+                if wrong_filled.is_none() {
+                    wrong_filled = Some((r, c));
+                }
             }
+        }
+        if let Some((r, c)) = wrong_filled {
+            return Some(BimaruHint {
+                row: r,
+                col: c,
+                value: solution[r][c],
+                reason: "This cell is wrong — correcting it".to_string(),
+                is_correction: true,
+            });
         }
     }
 

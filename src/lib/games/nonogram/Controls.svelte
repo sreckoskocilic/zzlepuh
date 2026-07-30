@@ -58,6 +58,7 @@
 			<select
 				class="select"
 				data-testid="picture-select"
+				disabled={isGenerating}
 				bind:value={pictureId}
 				onchange={() => {
 					if (pictureId) {

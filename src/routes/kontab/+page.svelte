@@ -102,11 +102,12 @@
 		{game}
 		breakdown={kontabState.dealSummary?.deal_breakdown ?? null}
 		oncontinue={() => kontabState.continueDeal()}
+		busy={kontabState.busy}
 	/>
 {/if}
 
 {#if game && game.phase.kind === 'game_over'}
-	<GameOver {game} loser={game.phase.loser} onnew={() => kontabState.newGame()} />
+	<GameOver {game} loser={game.phase.loser} onnew={() => kontabState.newGame()} busy={kontabState.busy} />
 {/if}
 
 <style>

@@ -6,6 +6,12 @@ on:
     tags:
       - 'v*' # ili tag npr. v0.1.0
 
+# Minisign potpisi nose timestamp → dva paralelna run-a daju različit .sig,
+# pa se latest.json može spojiti s installerom iz drugog run-a.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: windows-latest # x64 host -> x64 build
@@ -33,8 +39,43 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      # tauri-action uzima verziju iz tauri.conf.json, ne iz taga. Ako se ne
+      # poklapaju, prepiše assete starog release-a, run prođe zeleno, a
+      # latest.json i dalje javlja staru verziju → auto-update nikome ne radi.
+      - name: Verify version agreement
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          PKG=$(node -p "require('./package.json').version")
+          CONF=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          CARGO=$(grep -m1 '^version' src-tauri/Cargo.toml | sed -E 's/.*"(.*)".*/\1/')
+          echo "pkg=$PKG conf=$CONF cargo=$CARGO ref=$GITHUB_REF_NAME"
+          if [ "$PKG" != "$CONF" ] || [ "$PKG" != "$CARGO" ]; then
+            echo "::error::version drift — run npm run bump <ver>"; exit 1
+          fi
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$PKG" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match v$PKG"; exit 1
+          fi
+          if gh release view "v$PKG" >/dev/null 2>&1; then
+            echo "::error::release v$PKG already exists — bump first"; exit 1
+          fi
+
+      - name: Require signing key
+        shell: bash
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: '[ -n "$KEY" ] || { echo "::error::TAURI_SIGNING_PRIVATE_KEY missing"; exit 1; }'
+
       - name: Install deps
         run: npm ci
+
+      - name: Gate on tests
+        run: |
+          npm run check
+          npm run test:vitest
+          cargo test --manifest-path src-tauri/Cargo.toml
 
       # Builda x64, potpisuje updater artifacte, kreira Release i latest.json
       - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
@@ -47,4 +88,4 @@ jobs:
           releaseName: 'Zzlepuh v__VERSION__'
           releaseDraft: false
           prerelease: false
-          args: --target x86_64-pc-windows-msvc
+          args: --target x86_64-pc-windows-msvc -- --locked

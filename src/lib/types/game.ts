@@ -50,15 +50,36 @@ export function emptyGameStats(): GameStats {
 
 // Stats saved by an older version can be missing keys this one expects (say a new
 // difficulty), and reading those would crash. Fill any gaps from the empty shape.
+function num(v: unknown, fallback: number): number {
+	return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
+}
+
+function nullableNum(v: unknown): number | null {
+	return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
 export function mergeGameStats(saved: unknown): GameStats {
 	const base = emptyGameStats();
 	if (!saved || typeof saved !== 'object') return base;
 	const s = saved as Partial<GameStats>;
 	const merged: GameStats = { ...base, ...s };
-	merged.bestTimeMs = { ...base.bestTimeMs, ...(s.bestTimeMs ?? {}) };
+	merged.gamesPlayed = num(s.gamesPlayed, 0);
+	merged.gamesWon = num(s.gamesWon, 0);
+	merged.currentStreak = num(s.currentStreak, 0);
+	merged.bestStreak = num(s.bestStreak, 0);
+	merged.bestTimeMs = { ...base.bestTimeMs };
+	for (const k of Object.keys(base.bestTimeMs) as Difficulty[]) {
+		merged.bestTimeMs[k] = nullableNum(s.bestTimeMs?.[k]);
+	}
 	merged.byDifficulty = {} as GameStats['byDifficulty'];
 	for (const k of Object.keys(base.byDifficulty) as Difficulty[]) {
-		merged.byDifficulty[k] = { ...base.byDifficulty[k], ...(s.byDifficulty?.[k] ?? {}) };
+		const d = s.byDifficulty?.[k];
+		merged.byDifficulty[k] = {
+			played: num(d?.played, 0),
+			won: num(d?.won, 0),
+			bestTimeMs: nullableNum(d?.bestTimeMs),
+			totalTimeMs: num(d?.totalTimeMs, 0)
+		};
 	}
 	return merged;
 }

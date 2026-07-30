@@ -57,6 +57,7 @@ class KontabState {
 	}
 
 	async newGame(numPlayers = this.numPlayers, target = this.target): Promise<void> {
+		if (this.busy) return;
 		this.numPlayers = numPlayers;
 		this.target = target;
 		this.error = null;
@@ -95,6 +96,7 @@ class KontabState {
 	}
 
 	async continueDeal(): Promise<void> {
+		if (this.busy) return;
 		if (!this.game || this.game.phase.kind !== 'deal_complete') return;
 		this.busy = true;
 		try {

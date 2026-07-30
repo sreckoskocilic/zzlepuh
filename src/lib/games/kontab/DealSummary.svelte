@@ -6,9 +6,10 @@
 		game: GameState;
 		breakdown: ScoreBreakdown[] | null;
 		oncontinue: () => void;
+		busy?: boolean;
 	}
 
-	let { game, breakdown, oncontinue }: Props = $props();
+	let { game, breakdown, oncontinue, busy = false }: Props = $props();
 
 	const label = (p: number) => kontabNames.label(p);
 </script>
@@ -43,7 +44,7 @@
 				{/each}
 			</tbody>
 		</table>
-		<button type="button" class="primary" data-testid="kontab-continue" onclick={oncontinue}>
+		<button type="button" class="primary" data-testid="kontab-continue" onclick={oncontinue} disabled={busy}>
 			Next deal
 		</button>
 	</div>
