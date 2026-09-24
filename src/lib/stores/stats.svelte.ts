@@ -38,16 +38,17 @@ class StatsStore {
 			if (s.currentStreak > s.bestStreak) s.bestStreak = s.currentStreak;
 			s.lastPlayedAt = new Date().toISOString();
 
-			if (s.bestTimeMs[difficulty] === null || timeMs < s.bestTimeMs[difficulty]!) {
-				s.bestTimeMs[difficulty] = timeMs;
-			}
-
 			const d = s.byDifficulty[difficulty];
 			d.played++;
 			d.won++;
-			d.totalTimeMs += timeMs;
-			if (d.bestTimeMs === null || timeMs < d.bestTimeMs) {
-				d.bestTimeMs = timeMs;
+			if (timeMs > 0) {
+				if (s.bestTimeMs[difficulty] === null || timeMs < s.bestTimeMs[difficulty]!) {
+					s.bestTimeMs[difficulty] = timeMs;
+				}
+				d.totalTimeMs += timeMs;
+				if (d.bestTimeMs === null || timeMs < d.bestTimeMs) {
+					d.bestTimeMs = timeMs;
+				}
 			}
 
 			this.stats[gameId] = s;

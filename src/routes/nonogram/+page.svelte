@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import { nonogramState } from '$lib/games/nonogram/state.svelte';
 	import Board from '$lib/games/nonogram/Board.svelte';
 	import Controls from '$lib/games/nonogram/Controls.svelte';
@@ -20,10 +20,15 @@
 			timer.reset();
 			return;
 		}
+		if (!nonogramState.isPicture) {
+			difficulty = nonogramState.puzzle.difficulty as Difficulty;
+			gridSize = nonogramState.puzzle.rows as GridSize;
+		}
 		timer.setElapsed(nonogramState.savedElapsedMs);
 		if (!nonogramState.isComplete) timer.start();
 	});
 	onDestroy(() => {
+		mounted = false;
 		timer.pause();
 		if (nonogramState.puzzle) nonogramState.savedElapsedMs = timer.elapsedMs;
 		if (winTimeout) clearTimeout(winTimeout);
@@ -41,6 +46,7 @@
 
 	let difficulty: Difficulty = $state('medium');
 	let gridSize: GridSize = $state(10);
+	let mounted = true;
 	let winTimeout: ReturnType<typeof setTimeout> | null = null;
 	let showLeaderboard = $state(false);
 	let lastRank = $state<{ rank: number | null; difficulty: Difficulty; size: GridSize } | null>(null);
@@ -66,25 +72,31 @@
 		// Don't book a loss while a win validation is in flight — the grid is full
 		// and being checked, so abandoning here is a pending win, not a loss.
 		// Picture games aren't tracked in stats, so abandoning one isn't a loss.
-		if (nonogramState.isActive && !nonogramState.isValidatingSolution && !nonogramState.isPicture) {
-			statsStore.recordLoss('nonogram');
-		}
+		// A won game reopened by undo is settled, not abandoned.
+		const abandoning = nonogramState.isActive && !nonogramState.isValidatingSolution && !nonogramState.isPicture
+			&& nonogramState.winRecordedForGameId !== nonogramState.currentGameId;
 		difficulty = d;
 		gridSize = size;
 		lastRank = null;
+		const before = nonogramState.currentGameId;
 		await nonogramState.startNewGame(d, size, size);
-		timer.restart();
+		if (nonogramState.currentGameId === before) return;
+		if (abandoning && nonogramState.winRecordedForGameId !== before) statsStore.recordLoss('nonogram');
+		// The timer is shared; a page left mid-generation must not reset another game's clock.
+		if (mounted) timer.restart();
 	}
 
 	async function handlePlayPicture(id: string) {
 		if (nonogramState.isGenerating) return;
 		if (winTimeout) { clearTimeout(winTimeout); winTimeout = null; }
-		if (nonogramState.isActive && !nonogramState.isValidatingSolution && !nonogramState.isPicture) {
-			statsStore.recordLoss('nonogram');
-		}
+		const abandoning = nonogramState.isActive && !nonogramState.isValidatingSolution && !nonogramState.isPicture
+			&& nonogramState.winRecordedForGameId !== nonogramState.currentGameId;
 		lastRank = null;
+		const before = nonogramState.currentGameId;
 		await nonogramState.startPictureGame(id);
-		timer.restart();
+		if (nonogramState.currentGameId === before) return;
+		if (abandoning && nonogramState.winRecordedForGameId !== before) statsStore.recordLoss('nonogram');
+		if (mounted) timer.restart();
 	}
 
 	function handleHint() {
@@ -125,9 +137,9 @@
 	}
 
 	$effect(() => {
+		if (nonogramState.isComplete) untrack(() => timer.pause());
 		if (nonogramState.isComplete && nonogramState.winRecordedForGameId !== nonogramState.currentGameId) {
 			nonogramState.winRecordedForGameId = nonogramState.currentGameId;
-			timer.pause();
 			// Picture puzzles: variable size + non-standard difficulty → keep them
 			// out of stats/leaderboard. They just show the reveal.
 			if (nonogramState.isPicture) return;

@@ -1,28 +1,26 @@
 name: Release Windows x64
 
 on:
-  workflow_dispatch: # ručno iz Actions taba
+  workflow_dispatch:
   push:
     tags:
-      - 'v*' # ili tag npr. v0.1.0
+      - 'v*'
 
-# Minisign potpisi nose timestamp → dva paralelna run-a daju različit .sig,
-# pa se latest.json može spojiti s installerom iz drugog run-a.
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 jobs:
   release:
     runs-on: windows-latest # x64 host -> x64 build
     permissions:
-      contents: write # treba za kreiranje GitHub Release-a
+      contents: write
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
-          node-version: 25.9.0 # poravnato s lokalnim node-om
+          node-version: 26.5.0
 
       - uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
 
@@ -39,9 +37,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      # tauri-action uzima verziju iz tauri.conf.json, ne iz taga. Ako se ne
-      # poklapaju, prepiše assete starog release-a, run prođe zeleno, a
-      # latest.json i dalje javlja staru verziju → auto-update nikome ne radi.
       - name: Verify version agreement
         shell: bash
         env:
@@ -71,20 +66,22 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      # bash, not the default pwsh: pwsh only fails on the last command's exit code.
       - name: Gate on tests
+        shell: bash
         run: |
           npm run check
+          npm run lint
           npm run test:vitest
-          cargo test --manifest-path src-tauri/Cargo.toml
+          cargo test --locked --manifest-path src-tauri/Cargo.toml
 
-      # Builda x64, potpisuje updater artifacte, kreira Release i latest.json
       - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: v__VERSION__ # __VERSION__ se zamijeni s verzijom iz tauri.conf.json
+          tagName: v__VERSION__
           releaseName: 'Zzlepuh v__VERSION__'
           releaseDraft: false
           prerelease: false

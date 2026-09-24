@@ -227,11 +227,12 @@ class NonogramState {
 
 	redo(): void {
 		if (!this.puzzle) return;
-		this.undoStack.redo((move) => {
+		const redone = this.undoStack.redo((move) => {
 			for (const { row, col, next } of move.changes) {
 				this.grid[row][col] = next;
 			}
 		});
+		if (redone) this.checkWin();
 	}
 
 	markRemainingInRow(row: number): void {
@@ -295,7 +296,6 @@ class NonogramState {
 		);
 		this.isComplete = false;
 		this.errorCells = new Set();
-		this.savedElapsedMs = 0;
 		this.undoStack.clear();
 	}
 

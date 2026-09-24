@@ -1,4 +1,10 @@
 import type { Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+
+// Enforce the real capability ACL so a plugin call without its grant fails here, not only in the shipped app.
+const grantedPermissions: string[] = JSON.parse(
+	readFileSync(new URL('../../src-tauri/capabilities/default.json', import.meta.url), 'utf8')
+).permissions;
 
 interface MockOptions {
 	validateReturns?: boolean | ((args: any) => boolean);
@@ -122,10 +128,12 @@ export async function injectTauriMock(page: Page, opts: MockOptions & { easy?: b
 		: 'null';
 
 	await page.addInitScript(
-		({ pJson, solJson, valMode }: { pJson: string; solJson: string; valMode: string }) => {
+		({ pJson, solJson, valMode, granted }: { pJson: string; solJson: string; valMode: string; granted: string[] }) => {
 			const puzzle = JSON.parse(pJson);
 			const solution = JSON.parse(solJson);
 
+			const storeCalls: { cmd: string; granted: boolean }[] = [];
+			(window as any).__TAURI_STORE_CALLS__ = storeCalls;
 			(window as any).__TAURI_INTERNALS__ = {
 				invoke: async (cmd: string, args?: any) => {
 					if (cmd === 'generate_bimaru_puzzle') return puzzle;
@@ -437,16 +445,23 @@ export async function injectTauriMock(page: Page, opts: MockOptions & { easy?: b
 						return st;
 					}
 
+					if (cmd.startsWith('plugin:store|')) {
+						const perm = `store:allow-${cmd.slice('plugin:store|'.length).replace(/_/g, '-')}`;
+						storeCalls.push({ cmd, granted: granted.includes(perm) });
+						if (!granted.includes(perm)) throw new Error(`${cmd} not allowed: missing ${perm}`);
+					}
 					if (cmd === 'plugin:store|load') return 1;
 					if (cmd === 'plugin:store|get') return [null, false];
 					if (cmd === 'plugin:store|set') return null;
 					if (cmd === 'plugin:store|save') return null;
+					if (cmd === 'plugin:store|length') return 0;
+					if (cmd === 'plugin:store|entries') return [];
 					if (cmd === 'plugin:resources|close') return null;
 
 					return null;
 				}
 			};
 		},
-		{ pJson: puzzleJson, solJson: solutionJson, valMode: validateMode }
+		{ pJson: puzzleJson, solJson: solutionJson, valMode: validateMode, granted: grantedPermissions }
 	);
 }

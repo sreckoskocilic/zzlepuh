@@ -17,7 +17,7 @@ class LeaderboardStore {
 		if (this.boards[k]) return this.boards[k];
 		if (!this.pending.has(k)) {
 			this.pending.set(k, getData<LeaderboardEntry[]>(k).then(saved => {
-				const entries = saved ?? [];
+				const entries = (saved ?? []).filter(e => e.timeMs > 0);
 				this.boards[k] = entries;
 				this.pending.delete(k);
 				return entries;
@@ -33,6 +33,7 @@ class LeaderboardStore {
 		timeMs: number,
 		hintsUsed: number
 	): Promise<number | null> {
+		if (timeMs <= 0) return null;
 		const k = this.key(gameId, difficulty, gridSize);
 		const prev = this.writeQueue.get(k) ?? Promise.resolve();
 		const next = prev.then(async () => {

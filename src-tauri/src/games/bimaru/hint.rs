@@ -10,19 +10,32 @@ pub fn get_hint(
     rows: usize,
     cols: usize,
 ) -> Option<BimaruHint> {
-    if let Some((r, c, value, reason)) =
-        solver::find_deduction(row_clues, col_clues, player_grid, hints, rows, cols)
-    {
-        return Some(BimaruHint {
-            row: r,
-            col: c,
-            value,
-            reason,
-            is_correction: false,
-        });
+    let solution = solver::solve(row_clues, col_clues, hints, fleet, rows, cols);
+
+    // Propagation from a wrong-but-consistent-looking player cell deduces falsehoods,
+    // so only trust a deduction when every filled cell agrees with the solution.
+    let consistent = solution.as_ref().map_or(true, |sol| {
+        (0..rows).all(|r| {
+            (0..cols).all(|c| player_grid[r][c] == CellValue::Empty || player_grid[r][c] == sol[r][c])
+        })
+    });
+    if consistent {
+        if let Some((r, c, value, reason)) =
+            solver::find_deduction(row_clues, col_clues, player_grid, hints, rows, cols)
+        {
+            if solution.as_ref().map_or(true, |sol| sol[r][c] == value) {
+                return Some(BimaruHint {
+                    row: r,
+                    col: c,
+                    value,
+                    reason,
+                    is_correction: false,
+                });
+            }
+        }
     }
 
-    if let Some(solution) = solver::solve(row_clues, col_clues, hints, fleet, rows, cols) {
+    if let Some(solution) = solution {
         let mut wrong_filled: Option<(usize, usize)> = None;
         for r in 0..rows {
             for c in 0..cols {
@@ -92,5 +105,33 @@ mod tests {
 
         let h = hint.expect("Should produce a hint on a fresh puzzle");
         assert_eq!(h.value, sol.solution[h.row][h.col], "hint value must match solution");
+    }
+
+    #[test]
+    fn test_hint_ignores_deduction_from_wrong_but_consistent_cell() {
+        let parse = |rows: &[&str]| -> Vec<Vec<CellValue>> {
+            rows.iter()
+                .map(|r| {
+                    r.chars()
+                        .map(|ch| match ch {
+                            'S' => CellValue::Ship,
+                            '~' => CellValue::Water,
+                            _ => CellValue::Empty,
+                        })
+                        .collect()
+                })
+                .collect()
+        };
+        let row_clues = [2, 2, 1, 1, 1, 3];
+        let col_clues = [1, 2, 2, 0, 4, 1];
+        let hints = vec![vec![HintCell::Empty; 6]; 6];
+        let fleet = Fleet::for_size(6, 6);
+        let truth = parse(&["~S~~S~", "~S~~S~", "~~~~S~", "~~S~~~", "S~~~~~", "~~S~SS"]);
+        // Only error: (4,4) is Ship, truth is Water. It breaks no count or diagonal rule.
+        let player = parse(&[".S.~..", "~S.~S.", "~...S~", "~..~~~", "...~S.", "~~.~S."]);
+
+        let h = get_hint(&row_clues, &col_clues, &player, &hints, &fleet, 6, 6)
+            .expect("Should produce a hint");
+        assert_eq!(h.value, truth[h.row][h.col], "hint at ({},{}) contradicts the solution", h.row, h.col);
     }
 }

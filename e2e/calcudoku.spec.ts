@@ -185,7 +185,7 @@ test.describe('Calcudoku', () => {
 		await calc.startNewGame();
 
 		await calc.cell(0, 0).click();
-		await calc.page.keyboard.press('Shift+2');
+		await calc.page.keyboard.press('Shift+Digit2');
 
 		const cell = calc.cell(0, 0);
 		await expect(cell.locator('.notes-inline')).toHaveText('2');

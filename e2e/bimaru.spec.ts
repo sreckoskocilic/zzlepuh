@@ -16,6 +16,12 @@ test.describe('Bimaru', () => {
 		await expect(bimaru.emptyState).toContainText('New Game');
 	});
 
+	test('persistence only calls granted store commands', async ({ page }) => {
+		const calls = () => page.evaluate(() => (window as any).__TAURI_STORE_CALLS__ as { cmd: string; granted: boolean }[]);
+		await expect.poll(async () => (await calls()).some((c) => c.cmd === 'plugin:store|length')).toBe(true);
+		expect((await calls()).filter((c) => !c.granted)).toEqual([]);
+	});
+
 	test('new game generates 10x10 board', async () => {
 		await bimaru.startNewGame();
 		await expect(bimaru.allCells).toHaveCount(100);

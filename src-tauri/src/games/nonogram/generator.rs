@@ -209,7 +209,8 @@ fn difficulty_check(
             has_full_line || has_zero_line || avg_clues <= 2.0
                 || (is_large && fill_fraction >= 0.5)
         }
-        "hard" => avg_clues >= 2.5,
+        // A 5-cell line holds at most 3 clues; 2.5 average is all but unreachable there.
+        "hard" => avg_clues >= if rows.min(cols) <= 5 { 1.8 } else { 2.5 },
         _ => true,
     }
 }
@@ -233,12 +234,10 @@ mod tests {
 
     #[test]
     fn test_generate_valid_across_sizes() {
-        // Small-grid hard puzzles aren't always generatable (the difficulty filter
-        // can reject every attempt), so stick to size×difficulty combos the
-        // generator reliably produces — the goal here is oracle strength per size.
         for (n, diff) in [
             (5, "easy"),
             (5, "medium"),
+            (5, "hard"),
             (10, "medium"),
             (15, "medium"),
             (20, "medium"),

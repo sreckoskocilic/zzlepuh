@@ -32,7 +32,7 @@ Fill the grid so every row and column has each number exactly once, like Sudoku.
 
 ### Kon-Tab (Kontra-Tablić)
 
-A card game against the computer, for 2 to 4 players. Play a card to capture cards off the table whose values add up to yours; aces are flexible and can carry the high value. Scoring runs **backwards** — the lowest score wins, and the game ends as soon as somebody crosses the target of 51 or 101. Clearing the whole table is a *tabla* and costs the others ten. You can rename the opponents if you like.
+A card game against the computer, for 2 to 4 players. Play a card to capture cards off the table whose values add up to yours; aces are flexible and can carry the high value. Scoring runs **backwards** — the lowest score wins, and the game ends as soon as somebody crosses the target of 51 or 101. Clearing the whole table is a *tabla*, and it costs you ten. You can rename the opponents if you like.
 
 ## Hints and checking
 

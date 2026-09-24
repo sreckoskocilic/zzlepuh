@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import { calcudokuState } from '$lib/games/calcudoku/state.svelte';
 	import Board from '$lib/games/calcudoku/Board.svelte';
 	import Controls from '$lib/games/calcudoku/Controls.svelte';
@@ -17,10 +17,13 @@
 			timer.reset();
 			return;
 		}
+		difficulty = calcudokuState.puzzle.difficulty as Difficulty;
+		gridSize = calcudokuState.puzzle.size as GridSize;
 		timer.setElapsed(calcudokuState.savedElapsedMs);
 		if (!calcudokuState.isComplete) timer.start();
 	});
 	onDestroy(() => {
+		mounted = false;
 		timer.pause();
 		if (calcudokuState.puzzle) calcudokuState.savedElapsedMs = timer.elapsedMs;
 		if (winTimeout) clearTimeout(winTimeout);
@@ -28,6 +31,7 @@
 
 	let difficulty: Difficulty = $state('medium');
 	let gridSize: GridSize = $state(6);
+	let mounted = true;
 	let winTimeout: ReturnType<typeof setTimeout> | null = null;
 	let showLeaderboard = $state(false);
 	let lastRank = $state<{ rank: number | null; difficulty: Difficulty; size: GridSize } | null>(null);
@@ -47,14 +51,18 @@
 		if (winTimeout) { clearTimeout(winTimeout); winTimeout = null; }
 		// Don't book a loss while a win validation is in flight — the grid is full
 		// and being checked, so abandoning here is a pending win, not a loss.
-		if (calcudokuState.isActive && !calcudokuState.isValidatingSolution) {
-			statsStore.recordLoss('calcudoku');
-		}
+		// A won game reopened by undo is settled, not abandoned.
+		const abandoning = calcudokuState.isActive && !calcudokuState.isValidatingSolution
+			&& calcudokuState.winRecordedForGameId !== calcudokuState.currentGameId;
 		difficulty = d;
 		gridSize = size;
 		lastRank = null;
+		const before = calcudokuState.currentGameId;
 		await calcudokuState.startNewGame(d, size);
-		timer.restart();
+		if (calcudokuState.currentGameId === before) return;
+		if (abandoning && calcudokuState.winRecordedForGameId !== before) statsStore.recordLoss('calcudoku');
+		// The timer is shared; a page left mid-generation must not reset another game's clock.
+		if (mounted) timer.restart();
 	}
 
 	function handleHint() {
@@ -89,8 +97,10 @@
 		if (!calcudokuState.puzzle) return;
 
 		const key = e.key;
-		if (key >= '1' && key <= '9') {
-			const num = parseInt(key);
+		// Shift+2 reports key "@" (or '"'), so read the physical digit row from e.code.
+		const digit = /^Digit([1-9])$/.exec(e.code)?.[1] ?? (key >= '1' && key <= '9' ? key : null);
+		if (digit) {
+			const num = parseInt(digit);
 			if (num <= calcudokuState.puzzle.size) {
 				calcudokuState.enterNumber(num, e.shiftKey ? true : undefined);
 			}
@@ -123,9 +133,9 @@
 	}
 
 	$effect(() => {
+		if (calcudokuState.isComplete) untrack(() => timer.pause());
 		if (calcudokuState.isComplete && calcudokuState.winRecordedForGameId !== calcudokuState.currentGameId) {
 			calcudokuState.winRecordedForGameId = calcudokuState.currentGameId;
-			timer.pause();
 			const gameDifficulty = (calcudokuState.puzzle?.difficulty ?? difficulty) as Difficulty;
 			const gameSize = (calcudokuState.puzzle?.size ?? gridSize) as GridSize;
 			const ms = timer.elapsedMs;

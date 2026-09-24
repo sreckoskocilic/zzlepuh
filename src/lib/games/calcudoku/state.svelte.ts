@@ -269,12 +269,13 @@ class CalcudokuState {
 
 	redo(): void {
 		if (!this.puzzle) return;
-		this.undoStack.redo((move) => {
+		const redone = this.undoStack.redo((move) => {
 			for (const { row, col, nextValue, nextNotes } of move.changes) {
 				this.grid[row][col] = nextValue;
 				this.notes[row][col] = [...nextNotes];
 			}
 		});
+		if (redone) this.checkWin();
 	}
 
 	reset(): void {
@@ -288,7 +289,6 @@ class CalcudokuState {
 		this.isComplete = false;
 		this.errorCells = new Set();
 		this.selectedCell = null;
-		this.savedElapsedMs = 0;
 		this.undoStack.clear();
 	}
 

@@ -192,11 +192,12 @@ class BimaruState {
 
 	redo(): void {
 		if (!this.puzzle) return;
-		this.undoStack.redo((move) => {
+		const redone = this.undoStack.redo((move) => {
 			for (const { row, col, next } of move.changes) {
 				this.grid[row][col] = next;
 			}
 		});
+		if (redone) this.checkWin();
 	}
 
 	async requestCheck(): Promise<void> {
@@ -233,7 +234,6 @@ class BimaruState {
 		this.grid = this.initGridFromHints(this.puzzle);
 		this.isComplete = false;
 		this.errorCells = new Set();
-		this.savedElapsedMs = 0;
 		this.undoStack.clear();
 	}
 

@@ -54,8 +54,9 @@ function num(v: unknown, fallback: number): number {
 	return typeof v === 'number' && Number.isFinite(v) ? v : fallback;
 }
 
-function nullableNum(v: unknown): number | null {
-	return typeof v === 'number' && Number.isFinite(v) ? v : null;
+// A 0 ms best time is a recording bug, not a result: drop it.
+function bestTime(v: unknown): number | null {
+	return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null;
 }
 
 export function mergeGameStats(saved: unknown): GameStats {
@@ -69,7 +70,7 @@ export function mergeGameStats(saved: unknown): GameStats {
 	merged.bestStreak = num(s.bestStreak, 0);
 	merged.bestTimeMs = { ...base.bestTimeMs };
 	for (const k of Object.keys(base.bestTimeMs) as Difficulty[]) {
-		merged.bestTimeMs[k] = nullableNum(s.bestTimeMs?.[k]);
+		merged.bestTimeMs[k] = bestTime(s.bestTimeMs?.[k]);
 	}
 	merged.byDifficulty = {} as GameStats['byDifficulty'];
 	for (const k of Object.keys(base.byDifficulty) as Difficulty[]) {
@@ -77,7 +78,7 @@ export function mergeGameStats(saved: unknown): GameStats {
 		merged.byDifficulty[k] = {
 			played: num(d?.played, 0),
 			won: num(d?.won, 0),
-			bestTimeMs: nullableNum(d?.bestTimeMs),
+			bestTimeMs: bestTime(d?.bestTimeMs),
 			totalTimeMs: num(d?.totalTimeMs, 0)
 		};
 	}

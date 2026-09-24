@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import { bimaruState } from '$lib/games/bimaru/state.svelte';
 	import Board from '$lib/games/bimaru/Board.svelte';
 	import Fleet from '$lib/games/bimaru/Fleet.svelte';
@@ -18,10 +18,13 @@
 			timer.reset();
 			return;
 		}
+		difficulty = bimaruState.puzzle.difficulty as Difficulty;
+		gridSize = bimaruState.puzzle.rows as GridSize;
 		timer.setElapsed(bimaruState.savedElapsedMs);
 		if (!bimaruState.isComplete) timer.start();
 	});
 	onDestroy(() => {
+		mounted = false;
 		timer.pause();
 		if (bimaruState.puzzle) bimaruState.savedElapsedMs = timer.elapsedMs;
 		if (winTimeout) clearTimeout(winTimeout);
@@ -29,6 +32,7 @@
 
 	let difficulty: Difficulty = $state('medium');
 	let gridSize: GridSize = $state(10);
+	let mounted = true;
 	let winTimeout: ReturnType<typeof setTimeout> | null = null;
 	let showLeaderboard = $state(false);
 	let lastRank = $state<{ rank: number | null; difficulty: Difficulty; size: GridSize } | null>(null);
@@ -51,14 +55,18 @@
 		if (winTimeout) { clearTimeout(winTimeout); winTimeout = null; }
 		// Don't book a loss while a win validation is in flight — the grid is full
 		// and being checked, so abandoning here is a pending win, not a loss.
-		if (bimaruState.isActive && !bimaruState.isValidatingSolution) {
-			statsStore.recordLoss('bimaru');
-		}
+		// A won game reopened by undo is settled, not abandoned.
+		const abandoning = bimaruState.isActive && !bimaruState.isValidatingSolution
+			&& bimaruState.winRecordedForGameId !== bimaruState.currentGameId;
 		difficulty = d;
 		gridSize = size;
 		lastRank = null;
+		const before = bimaruState.currentGameId;
 		await bimaruState.startNewGame(d, size, size);
-		timer.restart();
+		if (bimaruState.currentGameId === before) return;
+		if (abandoning && bimaruState.winRecordedForGameId !== before) statsStore.recordLoss('bimaru');
+		// The timer is shared; a page left mid-generation must not reset another game's clock.
+		if (mounted) timer.restart();
 	}
 
 	function handleHint() {
@@ -103,9 +111,9 @@
 	}
 
 	$effect(() => {
+		if (bimaruState.isComplete) untrack(() => timer.pause());
 		if (bimaruState.isComplete && bimaruState.winRecordedForGameId !== bimaruState.currentGameId) {
 			bimaruState.winRecordedForGameId = bimaruState.currentGameId;
-			timer.pause();
 			const gameDifficulty = (bimaruState.puzzle?.difficulty ?? difficulty) as Difficulty;
 			const gameSize = (bimaruState.puzzle?.rows ?? gridSize) as GridSize;
 			const ms = timer.elapsedMs;

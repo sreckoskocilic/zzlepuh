@@ -1,4 +1,5 @@
 import { load, Store } from '@tauri-apps/plugin-store';
+import { error } from '@tauri-apps/plugin-log';
 
 const PRIMARY = 'zzlepuh-data.json';
 const BACKUP = 'zzlepuh-data.bak.json';
@@ -28,6 +29,11 @@ async function openStores(): Promise<Stores> {
 		await primary.set(SENTINEL, SCHEMA_VERSION);
 		await primary.save();
 	}
+	// Seed a missing or truncated mirror with everything, not just keys written later.
+	if ((await backup.get<number>(SENTINEL)) === undefined) {
+		for (const [k, v] of await primary.entries<unknown>()) await backup.set(k, v);
+		await backup.save();
+	}
 
 	return { primary, backup };
 }
@@ -47,7 +53,8 @@ export async function getData<T>(key: string): Promise<T | null> {
 		const { primary } = await getStores();
 		const val = await primary.get<T>(key);
 		return val ?? null;
-	} catch {
+	} catch (e) {
+		logError(`load ${key}`, e);
 		return null;
 	}
 }
@@ -60,6 +67,10 @@ export async function setData<T>(key: string, value: T): Promise<void> {
 		await backup.set(key, value);
 		await backup.save();
 	} catch (e) {
-		console.error('persistence: failed to save', key, e);
+		logError(`save ${key}`, e);
 	}
+}
+
+function logError(what: string, e: unknown): void {
+	error(`[persistence] ${what} failed: ${e instanceof Error ? e.message : String(e)}`).catch(() => {});
 }

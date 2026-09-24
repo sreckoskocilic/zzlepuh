@@ -14,10 +14,8 @@ cd "$ROOT"
 
 echo "→ Bump na $VERSION"
 
-# 1) package.json (+ package-lock.json)
 npm version "$VERSION" --no-git-tag-version --allow-same-version >/dev/null
 
-# 2) src-tauri/tauri.conf.json  (JSON-safe, čuva indent)
 node -e '
 	const fs = require("fs");
 	const p = "src-tauri/tauri.conf.json";
@@ -26,10 +24,8 @@ node -e '
 	fs.writeFileSync(p, JSON.stringify(j, null, 2) + "\n");
 ' "$VERSION"
 
-# 3) src-tauri/Cargo.toml  (samo version pod [package])
 perl -0pi -e 's/(\[package\][^\[]*?\nversion = ")[^"]+(")/${1}'"$VERSION"'${2}/s' src-tauri/Cargo.toml
 
-# 4) osvježi Cargo.lock
 cargo update --manifest-path src-tauri/Cargo.toml --workspace >/dev/null
 
 PKG=$(node -p 'require("./package.json").version')
@@ -47,4 +43,4 @@ done
 echo "✓ Gotovo — $VERSION u package.json, tauri.conf.json, Cargo.toml, Cargo.lock"
 echo
 echo "Dalje (ti, ručno):"
-echo "  git commit -am \"v$VERSION\" && git tag v$VERSION && git push --follow-tags"
+echo "  git commit -am \"v$VERSION\" && git tag -a v$VERSION -m v$VERSION && git push --follow-tags"

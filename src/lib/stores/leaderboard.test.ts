@@ -67,6 +67,17 @@ describe('leaderboardStore.addEntry', () => {
 		expect(times(g)).toEqual(before); // untouched
 	});
 
+	it('ignores a 0 ms time and drops saved 0 ms rows on load', async () => {
+		const g = freshGame();
+		store.set(`leaderboard:${g}:${D}:${SIZE}`, [
+			{ timeMs: 0, hintsUsed: 0, date: '' },
+			{ timeMs: 5000, hintsUsed: 0, date: '' }
+		]);
+		await leaderboardStore.load(g, D, SIZE);
+		expect(await leaderboardStore.addEntry(g, D, SIZE, 0, 0)).toBeNull();
+		expect(times(g)).toEqual([5000]);
+	});
+
 	it('getEntries returns [] for an unknown key', () => {
 		expect(leaderboardStore.getEntries('never-played', 'hard', 4)).toEqual([]);
 	});

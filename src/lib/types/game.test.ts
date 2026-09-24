@@ -68,4 +68,13 @@ describe('mergeGameStats', () => {
 		expect(b.byDifficulty.easy.played).toBe(0);
 		expect(a.byDifficulty.easy.played).toBe(1);
 	});
+
+	it('drops a recorded 0 ms best time', () => {
+		const merged = mergeGameStats({
+			bestTimeMs: { easy: 0 },
+			byDifficulty: { easy: { played: 1, won: 1, bestTimeMs: 0, totalTimeMs: 0 } }
+		});
+		expect(merged.bestTimeMs.easy).toBeNull();
+		expect(merged.byDifficulty.easy.bestTimeMs).toBeNull();
+	});
 });
